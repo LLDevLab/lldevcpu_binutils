@@ -1,0 +1,3205 @@
+diff -ruN binutils-2.34/bfd/archures.c binutils-2.34-lldevcpu/bfd/archures.c
+--- binutils-2.34/bfd/archures.c	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/archures.c	2020-06-30 20:58:46.000000000 +0300
+@@ -395,6 +395,8 @@
+ .#define bfd_mach_fr550		550
+ .  bfd_arch_moxie,     {* The moxie processor.  *}
+ .#define bfd_mach_moxie		1
++.  bfd_arch_lldevcpu,     {* The lldevcpu processor.  *}
++.#define bfd_mach_lldevcpu		1
+ .  bfd_arch_ft32,      {* The ft32 processor.  *}
+ .#define bfd_mach_ft32		1
+ .#define bfd_mach_ft32b		2
+@@ -644,6 +646,7 @@
+ extern const bfd_arch_info_type bfd_mn10200_arch;
+ extern const bfd_arch_info_type bfd_mn10300_arch;
+ extern const bfd_arch_info_type bfd_moxie_arch;
++extern const bfd_arch_info_type bfd_lldevcpu_arch;
+ extern const bfd_arch_info_type bfd_ft32_arch;
+ extern const bfd_arch_info_type bfd_msp430_arch;
+ extern const bfd_arch_info_type bfd_mt_arch;
+@@ -734,6 +737,7 @@
+     &bfd_mn10200_arch,
+     &bfd_mn10300_arch,
+     &bfd_moxie_arch,
++    &bfd_lldevcpu_arch,
+     &bfd_ft32_arch,
+     &bfd_msp430_arch,
+     &bfd_mt_arch,
+diff -ruN binutils-2.34/bfd/bfd-in2.h binutils-2.34-lldevcpu/bfd/bfd-in2.h
+--- binutils-2.34/bfd/bfd-in2.h	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/bfd-in2.h	2020-06-30 20:59:42.000000000 +0300
+@@ -1778,6 +1778,8 @@
+ #define bfd_mach_fr550         550
+   bfd_arch_moxie,     /* The moxie processor.  */
+ #define bfd_mach_moxie         1
++  bfd_arch_lldevcpu,     /* The lldevcpu processor.  */
++#define bfd_mach_lldevcpu      1
+   bfd_arch_ft32,      /* The ft32 processor.  */
+ #define bfd_mach_ft32          1
+ #define bfd_mach_ft32b         2
+@@ -2670,6 +2672,10 @@
+   BFD_RELOC_MOXIE_10_PCREL,
+ 
+ 
++/* Lldevcpu relocations.  */
++  BFD_RELOC_LLDEVCPU_10_PCREL,
++
++
+ /* FT32 ELF relocations.  */
+   BFD_RELOC_FT32_10,
+   BFD_RELOC_FT32_20,
+diff -ruN binutils-2.34/bfd/config.bfd binutils-2.34-lldevcpu/bfd/config.bfd
+--- binutils-2.34/bfd/config.bfd	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/config.bfd	2020-06-28 10:32:02.000000000 +0300
+@@ -512,6 +512,11 @@
+     targ_defvec=moxie_elf32_le_vec
+     ;;
+ 
++  lldevcpu-*-*)
++    targ_defvec=lldevcpu_elf32_be_vec
++    targ_selvecs=lldevcpu_elf32_le_vec
++    ;;
++
+   h8300*-*-elf | h8300*-*-rtems*)
+     targ_defvec=h8300_elf32_vec
+     targ_underscore=yes
+diff -ruN binutils-2.34/bfd/configure binutils-2.34-lldevcpu/bfd/configure
+--- binutils-2.34/bfd/configure	2020-02-01 13:49:13.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/configure	2020-06-28 10:33:24.000000000 +0300
+@@ -14833,6 +14833,8 @@
+     mn10300_elf32_vec)		 tb="$tb elf-m10300.lo elf32.lo $elf" ;;
+     moxie_elf32_be_vec)		 tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     moxie_elf32_le_vec)		 tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
++    lldevcpu_elf32_be_vec)		 tb="$tb elf32-lldevcpu.lo elf32.lo $elf" ;;
++    lldevcpu_elf32_le_vec)		 tb="$tb elf32-lldevcpu.lo elf32.lo $elf" ;;
+     msp430_elf32_vec)		 tb="$tb elf32-msp430.lo elf32.lo $elf" ;;
+     msp430_elf32_ti_vec)	 tb="$tb elf32-msp430.lo elf32.lo $elf" ;;
+     mt_elf32_vec)		 tb="$tb elf32-mt.lo elf32.lo $elf" ;;
+diff -ruN binutils-2.34/bfd/configure.ac binutils-2.34-lldevcpu/bfd/configure.ac
+--- binutils-2.34/bfd/configure.ac	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/configure.ac	2020-06-28 10:34:22.000000000 +0300
+@@ -569,6 +569,8 @@
+     mn10300_elf32_vec)		 tb="$tb elf-m10300.lo elf32.lo $elf" ;;
+     moxie_elf32_be_vec)		 tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     moxie_elf32_le_vec)		 tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
++    lldevcpu_elf32_be_vec)		 tb="$tb elf32-lldevcpu.lo elf32.lo $elf" ;;
++    lldevcpu_elf32_le_vec)		 tb="$tb elf32-lldevcpu.lo elf32.lo $elf" ;;
+     msp430_elf32_vec)		 tb="$tb elf32-msp430.lo elf32.lo $elf" ;;
+     msp430_elf32_ti_vec)	 tb="$tb elf32-msp430.lo elf32.lo $elf" ;;
+     mt_elf32_vec)		 tb="$tb elf32-mt.lo elf32.lo $elf" ;;
+diff -ruN binutils-2.34/bfd/cpu-lldevcpu.c binutils-2.34-lldevcpu/bfd/cpu-lldevcpu.c
+--- binutils-2.34/bfd/cpu-lldevcpu.c	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/bfd/cpu-lldevcpu.c	2020-06-28 10:36:02.000000000 +0300
+@@ -0,0 +1,42 @@
++/* BFD support for the lldevcpu processor.
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++   Written by Anthony Green
++
++   This file is part of BFD, the Binary File Descriptor library.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software Foundation,
++   Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
++
++#include "sysdep.h"
++#include "bfd.h"
++#include "libbfd.h"
++
++
++const bfd_arch_info_type bfd_lldevcpu_arch =
++{
++  32,		      /* Bits in a word.  */
++  32,		      /* Bits in an address.  */
++  8,		      /* Bits in a byte.  */
++  bfd_arch_lldevcpu,     /* Architecture Number.  */
++  bfd_mach_lldevcpu,     /* Machine number.  */
++  "lldevcpu",	      /* Arch name.  */
++  "lldevcpu",	      /* Printable name.  */
++  2,		      /* Section alignment power.  */
++  TRUE,	              /* The one and only.  */
++  bfd_default_compatible,
++  bfd_default_scan,
++  bfd_arch_default_fill,
++  NULL,
++  0 /* Maximum offset of a reloc from the start of an insn.  */
++};
+diff -ruN binutils-2.34/bfd/doc/archures.texi binutils-2.34-lldevcpu/bfd/doc/archures.texi
+--- binutils-2.34/bfd/doc/archures.texi	2020-02-01 14:02:21.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/doc/archures.texi	2020-06-30 21:00:04.000000000 +0300
+@@ -362,6 +362,8 @@
+ #define bfd_mach_fr550         550
+   bfd_arch_moxie,     /* The moxie processor.  */
+ #define bfd_mach_moxie         1
++  bfd_arch_lldevcpu,     /* The lldevcpu processor.  */
++#define bfd_mach_lldevcpu      1
+   bfd_arch_ft32,      /* The ft32 processor.  */
+ #define bfd_mach_ft32          1
+ #define bfd_mach_ft32b         2
+diff -ruN binutils-2.34/bfd/doc/bfd.info binutils-2.34-lldevcpu/bfd/doc/bfd.info
+--- binutils-2.34/bfd/doc/bfd.info	2020-02-01 14:02:23.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/doc/bfd.info	2020-06-30 21:00:16.000000000 +0300
+@@ -4137,6 +4137,8 @@
+      MIPS ELF relocations (VxWorks and PLT extensions).
+  -- : BFD_RELOC_MOXIE_10_PCREL
+      Moxie ELF relocations.
++ -- : BFD_RELOC_LLDEVCPU_10_PCREL
++     Lldevcpu ELF relocations.
+  -- : BFD_RELOC_FT32_10
+  -- : BFD_RELOC_FT32_20
+  -- : BFD_RELOC_FT32_17
+@@ -8362,6 +8364,8 @@
+      #define bfd_mach_fr550         550
+        bfd_arch_moxie,     /* The moxie processor.  */
+      #define bfd_mach_moxie         1
++       bfd_arch_lldevcpu,     /* The lldevcpu processor.  */
++     #define bfd_mach_lldevcpu      1
+        bfd_arch_ft32,      /* The ft32 processor.  */
+      #define bfd_mach_ft32          1
+      #define bfd_mach_ft32b         2
+@@ -13452,6 +13456,7 @@
+ * BFD_RELOC_MN10300_TLS_LE:              howto manager.      (line  510)
+ * BFD_RELOC_MN10300_TLS_TPOFF:           howto manager.      (line  513)
+ * BFD_RELOC_MOXIE_10_PCREL:              howto manager.      (line  427)
++* BFD_RELOC_LLDEVCPU_10_PCREL:              howto manager.      (line  427)
+ * BFD_RELOC_MSP430X_ABS16:               howto manager.      (line 2457)
+ * BFD_RELOC_MSP430X_ABS20_ADR_DST:       howto manager.      (line 2454)
+ * BFD_RELOC_MSP430X_ABS20_ADR_SRC:       howto manager.      (line 2453)
+diff -ruN binutils-2.34/bfd/doc/reloc.texi binutils-2.34-lldevcpu/bfd/doc/reloc.texi
+--- binutils-2.34/bfd/doc/reloc.texi	2020-02-01 14:02:21.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/doc/reloc.texi	2020-06-28 11:16:06.000000000 +0300
+@@ -944,6 +944,9 @@
+ @deffn {} BFD_RELOC_MOXIE_10_PCREL
+ Moxie ELF relocations.
+ @end deffn
++@deffn {} BFD_RELOC_LLDEVCPU_10_PCREL
++Lldevcpu ELF relocations.
++@end deffn
+ @deffn {} BFD_RELOC_FT32_10
+ @deffnx {} BFD_RELOC_FT32_20
+ @deffnx {} BFD_RELOC_FT32_17
+diff -ruN binutils-2.34/bfd/elf32-lldevcpu.c binutils-2.34-lldevcpu/bfd/elf32-lldevcpu.c
+--- binutils-2.34/bfd/elf32-lldevcpu.c	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/bfd/elf32-lldevcpu.c	2020-06-28 11:09:34.000000000 +0300
+@@ -0,0 +1,390 @@
++/* lldevcpu-specific support for 32-bit ELF.
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++
++   Copied from elf32-fr30.c which is..
++   Copyright (C) 1998-2020 Free Software Foundation, Inc.
++
++   This file is part of BFD, the Binary File Descriptor library.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
++   MA 02110-1301, USA.  */
++
++#include "sysdep.h"
++#include "bfd.h"
++#include "libbfd.h"
++#include "elf-bfd.h"
++#include "elf/lldevcpu.h"
++
++/* Forward declarations.  */
++
++static reloc_howto_type lldevcpu_elf_howto_table [] =
++{
++  /* This reloc does nothing.  */
++  HOWTO (R_LLDEVCPU_NONE,		/* type */
++	 0,			/* rightshift */
++	 3,			/* size (0 = byte, 1 = short, 2 = long) */
++	 0,			/* bitsize */
++	 FALSE,			/* pc_relative */
++	 0,			/* bitpos */
++	 complain_overflow_dont, /* complain_on_overflow */
++	 bfd_elf_generic_reloc,	/* special_function */
++	 "R_LLDEVCPU_NONE",		/* name */
++	 FALSE,			/* partial_inplace */
++	 0,			/* src_mask */
++	 0,			/* dst_mask */
++	 FALSE),		/* pcrel_offset */
++
++  /* A 32 bit absolute relocation.  */
++  HOWTO (R_LLDEVCPU_32,		/* type */
++	 0,			/* rightshift */
++	 2,			/* size (0 = byte, 1 = short, 2 = long) */
++	 32,			/* bitsize */
++	 FALSE,			/* pc_relative */
++	 0,			/* bitpos */
++	 complain_overflow_bitfield, /* complain_on_overflow */
++	 bfd_elf_generic_reloc,	/* special_function */
++	 "R_LLDEVCPU_32",		/* name */
++	 FALSE,			/* partial_inplace */
++	 0x00000000,		/* src_mask */
++	 0xffffffff,		/* dst_mask */
++	 FALSE),		/* pcrel_offset */
++
++  /* A 10 bit PC-relative relocation.  */
++  HOWTO (R_LLDEVCPU_PCREL10,	/* type.  */
++	 1,			/* rightshift.  */
++	 1,			/* size (0 = byte, 1 = short, 2 = long).  */
++	 10,			/* bitsize.  */
++	 TRUE,			/* pc_relative.  */
++	 0,			/* bitpos.  */
++	 complain_overflow_signed, /* complain_on_overflow.  */
++	 bfd_elf_generic_reloc,	/* special_function.  */
++	 "R_LLDEVCPU_PCREL10",		/* name.  */
++	 FALSE,			/* partial_inplace.  */
++	 0,			/* src_mask.  */
++	 0x000003FF,		/* dst_mask.  */
++	 TRUE),			/* pcrel_offset.  */
++};
++
++/* Map BFD reloc types to LLDEVCPU ELF reloc types.  */
++
++struct lldevcpu_reloc_map
++{
++  bfd_reloc_code_real_type bfd_reloc_val;
++  unsigned int lldevcpu_reloc_val;
++};
++
++static const struct lldevcpu_reloc_map lldevcpu_reloc_map [] =
++{
++  { BFD_RELOC_NONE,	       R_LLDEVCPU_NONE },
++  { BFD_RELOC_32,	       R_LLDEVCPU_32 },
++  { BFD_RELOC_LLDEVCPU_10_PCREL,  R_LLDEVCPU_PCREL10 },
++};
++
++static reloc_howto_type *
++lldevcpu_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
++			 bfd_reloc_code_real_type code)
++{
++  unsigned int i;
++
++  for (i = sizeof (lldevcpu_reloc_map) / sizeof (lldevcpu_reloc_map[0]);
++       i--;)
++    if (lldevcpu_reloc_map [i].bfd_reloc_val == code)
++      return & lldevcpu_elf_howto_table [lldevcpu_reloc_map[i].lldevcpu_reloc_val];
++
++  return NULL;
++}
++
++static reloc_howto_type *
++lldevcpu_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED, const char *r_name)
++{
++  unsigned int i;
++
++  for (i = 0;
++       i < sizeof (lldevcpu_elf_howto_table) / sizeof (lldevcpu_elf_howto_table[0]);
++       i++)
++    if (lldevcpu_elf_howto_table[i].name != NULL
++	&& strcasecmp (lldevcpu_elf_howto_table[i].name, r_name) == 0)
++      return &lldevcpu_elf_howto_table[i];
++
++  return NULL;
++}
++
++/* Set the howto pointer for an LLDEVCPU ELF reloc.  */
++
++static bfd_boolean
++lldevcpu_info_to_howto_rela (bfd *abfd,
++			  arelent *cache_ptr,
++			  Elf_Internal_Rela *dst)
++{
++  unsigned int r_type;
++
++  r_type = ELF32_R_TYPE (dst->r_info);
++  if (r_type >= (unsigned int) R_LLDEVCPU_max)
++    {
++      /* xgettext:c-format */
++      _bfd_error_handler (_("%pB: unsupported relocation type %#x"),
++			  abfd, r_type);
++      bfd_set_error (bfd_error_bad_value);
++      return FALSE;
++    }
++  cache_ptr->howto = & lldevcpu_elf_howto_table [r_type];
++  return TRUE;
++}
++
++/* Perform a single relocation.  By default we use the standard BFD
++   routines, but a few relocs, we have to do them ourselves.  */
++
++static bfd_reloc_status_type
++lldevcpu_final_link_relocate (reloc_howto_type *howto,
++			   bfd *input_bfd,
++			   asection *input_section,
++			   bfd_byte *contents,
++			   Elf_Internal_Rela *rel,
++			   bfd_vma relocation)
++{
++  bfd_reloc_status_type r = bfd_reloc_ok;
++
++  switch (howto->type)
++    {
++    default:
++      r = _bfd_final_link_relocate (howto, input_bfd, input_section,
++				    contents, rel->r_offset,
++				    relocation, rel->r_addend);
++    }
++
++  return r;
++}
++
++/* Relocate an LLDEVCPU ELF section.
++
++   The RELOCATE_SECTION function is called by the new ELF backend linker
++   to handle the relocations for a section.
++
++   The relocs are always passed as Rela structures; if the section
++   actually uses Rel structures, the r_addend field will always be
++   zero.
++
++   This function is responsible for adjusting the section contents as
++   necessary, and (if using Rela relocs and generating a relocatable
++   output file) adjusting the reloc addend as necessary.
++
++   This function does not have to worry about setting the reloc
++   address or the reloc symbol index.
++
++   LOCAL_SYMS is a pointer to the swapped in local symbols.
++
++   LOCAL_SECTIONS is an array giving the section in the input file
++   corresponding to the st_shndx field of each local symbol.
++
++   The global hash table entry for the global symbols can be found
++   via elf_sym_hashes (input_bfd).
++
++   When generating relocatable output, this function must handle
++   STB_LOCAL/STT_SECTION symbols specially.  The output symbol is
++   going to be the section symbol corresponding to the output
++   section, which means that the addend must be adjusted
++   accordingly.  */
++
++static bfd_boolean
++lldevcpu_elf_relocate_section (bfd *output_bfd,
++			    struct bfd_link_info *info,
++			    bfd *input_bfd,
++			    asection *input_section,
++			    bfd_byte *contents,
++			    Elf_Internal_Rela *relocs,
++			    Elf_Internal_Sym *local_syms,
++			    asection **local_sections)
++{
++  Elf_Internal_Shdr *symtab_hdr;
++  struct elf_link_hash_entry **sym_hashes;
++  Elf_Internal_Rela *rel;
++  Elf_Internal_Rela *relend;
++
++  symtab_hdr = & elf_tdata (input_bfd)->symtab_hdr;
++  sym_hashes = elf_sym_hashes (input_bfd);
++  relend     = relocs + input_section->reloc_count;
++
++  for (rel = relocs; rel < relend; rel ++)
++    {
++      reloc_howto_type *howto;
++      unsigned long r_symndx;
++      Elf_Internal_Sym *sym;
++      asection *sec;
++      struct elf_link_hash_entry *h;
++      bfd_vma relocation;
++      bfd_reloc_status_type r;
++      const char *name;
++      int r_type;
++
++      r_type = ELF32_R_TYPE (rel->r_info);
++      r_symndx = ELF32_R_SYM (rel->r_info);
++      howto  = lldevcpu_elf_howto_table + r_type;
++      h      = NULL;
++      sym    = NULL;
++      sec    = NULL;
++
++      if (r_symndx < symtab_hdr->sh_info)
++	{
++	  sym = local_syms + r_symndx;
++	  sec = local_sections [r_symndx];
++	  relocation = _bfd_elf_rela_local_sym (output_bfd, sym, &sec, rel);
++
++	  name = bfd_elf_string_from_elf_section
++	    (input_bfd, symtab_hdr->sh_link, sym->st_name);
++	  name = name == NULL ? bfd_section_name (sec) : name;
++	}
++      else
++	{
++	  bfd_boolean unresolved_reloc, warned, ignored;
++
++	  RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
++				   r_symndx, symtab_hdr, sym_hashes,
++				   h, sec, relocation,
++				   unresolved_reloc, warned, ignored);
++
++	  name = h->root.root.string;
++	}
++
++      if (sec != NULL && discarded_section (sec))
++	RELOC_AGAINST_DISCARDED_SECTION (info, input_bfd, input_section,
++					 rel, 1, relend, howto, 0, contents);
++
++      if (bfd_link_relocatable (info))
++	continue;
++
++      r = lldevcpu_final_link_relocate (howto, input_bfd, input_section,
++				     contents, rel, relocation);
++
++      if (r != bfd_reloc_ok)
++	{
++	  const char * msg = NULL;
++
++	  switch (r)
++	    {
++	    case bfd_reloc_overflow:
++	      (*info->callbacks->reloc_overflow)
++		(info, (h ? &h->root : NULL), name, howto->name,
++		 (bfd_vma) 0, input_bfd, input_section, rel->r_offset);
++	      break;
++
++	    case bfd_reloc_undefined:
++	      (*info->callbacks->undefined_symbol)
++		(info, name, input_bfd, input_section, rel->r_offset, TRUE);
++	      break;
++
++	    case bfd_reloc_outofrange:
++	      msg = _("internal error: out of range error");
++	      break;
++
++	    case bfd_reloc_notsupported:
++	      msg = _("internal error: unsupported relocation error");
++	      break;
++
++	    case bfd_reloc_dangerous:
++	      msg = _("internal error: dangerous relocation");
++	      break;
++
++	    default:
++	      msg = _("internal error: unknown error");
++	      break;
++	    }
++
++	  if (msg)
++	    (*info->callbacks->warning) (info, msg, name, input_bfd,
++					 input_section, rel->r_offset);
++	}
++    }
++
++  return TRUE;
++}
++
++/* Return the section that should be marked against GC for a given
++   relocation.  */
++
++static asection *
++lldevcpu_elf_gc_mark_hook (asection *sec,
++			struct bfd_link_info *info,
++			Elf_Internal_Rela *rel,
++			struct elf_link_hash_entry *h,
++			Elf_Internal_Sym *sym)
++{
++  return _bfd_elf_gc_mark_hook (sec, info, rel, h, sym);
++}
++
++/* Look through the relocs for a section during the first phase.
++   Since we don't do .gots or .plts, we just need to consider the
++   virtual table relocs for gc.  */
++
++static bfd_boolean
++lldevcpu_elf_check_relocs (bfd *abfd,
++			struct bfd_link_info *info,
++			asection *sec,
++			const Elf_Internal_Rela *relocs)
++{
++  Elf_Internal_Shdr *symtab_hdr;
++  struct elf_link_hash_entry **sym_hashes;
++  const Elf_Internal_Rela *rel;
++  const Elf_Internal_Rela *rel_end;
++
++  if (bfd_link_relocatable (info))
++    return TRUE;
++
++  symtab_hdr = &elf_tdata (abfd)->symtab_hdr;
++  sym_hashes = elf_sym_hashes (abfd);
++
++  rel_end = relocs + sec->reloc_count;
++  for (rel = relocs; rel < rel_end; rel++)
++    {
++      struct elf_link_hash_entry *h;
++      unsigned long r_symndx;
++
++      r_symndx = ELF32_R_SYM (rel->r_info);
++      if (r_symndx < symtab_hdr->sh_info)
++	h = NULL;
++      else
++	{
++	  h = sym_hashes[r_symndx - symtab_hdr->sh_info];
++	  while (h->root.type == bfd_link_hash_indirect
++		 || h->root.type == bfd_link_hash_warning)
++	    h = (struct elf_link_hash_entry *) h->root.u.i.link;
++	}
++    }
++
++  return TRUE;
++}
++
++#define ELF_ARCH		bfd_arch_lldevcpu
++#define ELF_MACHINE_CODE	EM_LLDEVCPU
++#define ELF_MACHINE_ALT1	EM_LLDEVCPU_OLD
++#define ELF_MAXPAGESIZE		0x1
++
++#define TARGET_BIG_SYM		lldevcpu_elf32_be_vec
++#define TARGET_BIG_NAME		"elf32-biglldevcpu"
++#define TARGET_LITTLE_SYM	lldevcpu_elf32_le_vec
++#define TARGET_LITTLE_NAME	"elf32-littlelldevcpu"
++
++#define elf_info_to_howto_rel			NULL
++#define elf_info_to_howto			lldevcpu_info_to_howto_rela
++#define elf_backend_relocate_section		lldevcpu_elf_relocate_section
++#define elf_backend_gc_mark_hook		lldevcpu_elf_gc_mark_hook
++#define elf_backend_check_relocs		lldevcpu_elf_check_relocs
++
++#define elf_backend_can_gc_sections		1
++#define elf_backend_rela_normal			1
++
++#define bfd_elf32_bfd_reloc_type_lookup		lldevcpu_reloc_type_lookup
++#define bfd_elf32_bfd_reloc_name_lookup		lldevcpu_reloc_name_lookup
++
++#include "elf32-target.h"
+diff -ruN binutils-2.34/bfd/libbfd.h binutils-2.34-lldevcpu/bfd/libbfd.h
+--- binutils-2.34/bfd/libbfd.h	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/libbfd.h	2020-06-28 11:10:06.000000000 +0300
+@@ -1256,6 +1256,8 @@
+ 
+   "BFD_RELOC_MOXIE_10_PCREL",
+ 
++  "BFD_RELOC_LLDEVCPU_10_PCREL",
++
+   "BFD_RELOC_FT32_10",
+   "BFD_RELOC_FT32_20",
+   "BFD_RELOC_FT32_17",
+diff -ruN binutils-2.34/bfd/Makefile.am binutils-2.34-lldevcpu/bfd/Makefile.am
+--- binutils-2.34/bfd/Makefile.am	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/Makefile.am	2020-06-28 11:10:52.000000000 +0300
+@@ -135,6 +135,7 @@
+ 	cpu-mips.lo \
+ 	cpu-mmix.lo \
+ 	cpu-moxie.lo \
++	cpu-lldevcpu.lo \
+ 	cpu-msp430.lo \
+ 	cpu-mt.lo \
+ 	cpu-nds32.lo \
+@@ -220,6 +221,7 @@
+ 	cpu-mips.c \
+ 	cpu-mmix.c \
+ 	cpu-moxie.c \
++	cpu-lldevcpu.c \
+ 	cpu-msp430.c \
+ 	cpu-mt.c \
+ 	cpu-nds32.c \
+@@ -329,6 +331,7 @@
+ 	elf32-metag.lo \
+ 	elf32-microblaze.lo \
+ 	elf32-moxie.lo \
++	elf32-lldevcpu.lo \
+ 	elf32-msp430.lo \
+ 	elf32-mt.lo \
+ 	elf32-nds32.lo \
+@@ -465,6 +468,7 @@
+ 	elf32-metag.c \
+ 	elf32-microblaze.c \
+ 	elf32-moxie.c \
++	elf32-lldevcpu.c \
+ 	elf32-msp430.c \
+ 	elf32-mt.c \
+ 	elf32-nds32.c \
+diff -ruN binutils-2.34/bfd/Makefile.in binutils-2.34-lldevcpu/bfd/Makefile.in
+--- binutils-2.34/bfd/Makefile.in	2020-02-01 13:49:13.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/Makefile.in	2020-06-28 11:12:08.000000000 +0300
+@@ -559,6 +559,7 @@
+ 	cpu-mips.lo \
+ 	cpu-mmix.lo \
+ 	cpu-moxie.lo \
++	cpu-lldevcpu.lo \
+ 	cpu-msp430.lo \
+ 	cpu-mt.lo \
+ 	cpu-nds32.lo \
+@@ -644,6 +645,7 @@
+ 	cpu-mips.c \
+ 	cpu-mmix.c \
+ 	cpu-moxie.c \
++	cpu-lldevcpu.c \
+ 	cpu-msp430.c \
+ 	cpu-mt.c \
+ 	cpu-nds32.c \
+@@ -754,6 +756,7 @@
+ 	elf32-metag.lo \
+ 	elf32-microblaze.lo \
+ 	elf32-moxie.lo \
++	elf32-lldevcpu.lo \
+ 	elf32-msp430.lo \
+ 	elf32-mt.lo \
+ 	elf32-nds32.lo \
+@@ -890,6 +893,7 @@
+ 	elf32-metag.c \
+ 	elf32-microblaze.c \
+ 	elf32-moxie.c \
++	elf32-lldevcpu.c \
+ 	elf32-msp430.c \
+ 	elf32-mt.c \
+ 	elf32-nds32.c \
+@@ -1373,6 +1377,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-mips.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-mmix.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-moxie.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-lldevcpu.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-msp430.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-mt.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cpu-nds32.Plo@am__quote@
+@@ -1463,6 +1468,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-microblaze.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-mips.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-moxie.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-lldevcpu.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-msp430.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-mt.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-nds32.Plo@am__quote@
+diff -ruN binutils-2.34/bfd/po/bfd.pot binutils-2.34-lldevcpu/bfd/po/bfd.pot
+--- binutils-2.34/bfd/po/bfd.pot	2020-02-01 13:49:24.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/bfd.pot	2020-06-28 11:17:32.000000000 +0300
+@@ -77,6 +77,7 @@
+ #: elf32-m68hc12.c:510 elf32-m68k.c:354 elf32-mcore.c:354 elf32-mcore.c:440
+ #: elf32-mep.c:389 elf32-metag.c:878 elf32-microblaze.c:692
+ #: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-moxie.c:137
++#: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-lldevcpu.c:137
+ #: elf32-msp430.c:651 elf32-msp430.c:661 elf32-mt.c:241 elf32-nds32.c:3240
+ #: elf32-nds32.c:3266 elf32-nds32.c:5177 elf32-nios2.c:3015 elf32-or1k.c:1037
+ #: elf32-pj.c:326 elf32-ppc.c:901 elf32-ppc.c:914 elf32-pru.c:423
+@@ -859,6 +860,7 @@
+ #: elf32-h8300.c:523 elf32-ip2k.c:1482 elf32-iq2000.c:691 elf32-lm32.c:1112
+ #: elf32-m32c.c:624 elf32-m32r.c:3045 elf32-m68hc1x.c:1272 elf32-mep.c:526
+ #: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-moxie.c:288 elf32-mt.c:402
++#: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-lldevcpu.c:288 elf32-mt.c:402
+ #: elf32-nds32.c:6192 elf32-or1k.c:1759 elf32-score.c:2733 elf32-score7.c:2542
+ #: elf32-spu.c:5086 elf32-tilepro.c:3505 elf32-v850.c:2290 elf32-visium.c:680
+ #: elf32-xstormy16.c:929 elf64-bpf.c:487 elf64-mmix.c:1541 elfxx-tilegx.c:3869
+@@ -871,6 +873,7 @@
+ #: elf32-iq2000.c:695 elf32-lm32.c:1116 elf32-m32c.c:628 elf32-m32r.c:3049
+ #: elf32-m68hc1x.c:1276 elf32-mep.c:530 elf32-metag.c:1994
+ #: elf32-microblaze.c:1635 elf32-moxie.c:292 elf32-msp430.c:1365
++#: elf32-microblaze.c:1635 elf32-lldevcpu.c:292 elf32-msp430.c:1365
+ #: elf32-nds32.c:6196 elf32-or1k.c:1763 elf32-score.c:2737 elf32-score7.c:2546
+ #: elf32-spu.c:5090 elf32-tilepro.c:3509 elf32-v850.c:2294 elf32-visium.c:684
+ #: elf32-xstormy16.c:933 elf64-mmix.c:1545 elfxx-mips.c:10575
+@@ -891,6 +894,7 @@
+ #: elf32-h8300.c:535 elf32-ip2k.c:1497 elf32-iq2000.c:703 elf32-lm32.c:1124
+ #: elf32-m32c.c:636 elf32-m32r.c:3057 elf32-m68hc1x.c:1284 elf32-mep.c:538
+ #: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-moxie.c:300
++#: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-lldevcpu.c:300
+ #: elf32-msp430.c:1373 elf32-mt.c:410 elf32-nds32.c:6204 elf32-or1k.c:1771
+ #: elf32-score.c:2750 elf32-score7.c:2554 elf32-spu.c:5098 elf32-tilepro.c:3517
+ #: elf32-v850.c:2314 elf32-visium.c:692 elf32-xstormy16.c:941 elf64-bpf.c:500
+@@ -2057,6 +2061,7 @@
+ #: elf32-fr30.c:602 elf32-frv.c:4053 elf32-ft32.c:502 elf32-ip2k.c:1493
+ #: elf32-iq2000.c:699 elf32-m32c.c:632 elf32-mep.c:534 elf32-metag.c:1998
+ #: elf32-moxie.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
++#: elf32-lldevcpu.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
+ #: elf32-tilepro.c:3513 elf32-v850.c:2298 elf32-visium.c:688
+ #: elf32-xstormy16.c:937 elf64-bpf.c:496 elf64-mmix.c:1549 elfxx-tilegx.c:3877
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/po/da.po binutils-2.34-lldevcpu/bfd/po/da.po
+--- binutils-2.34/bfd/po/da.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/da.po	2020-06-29 20:52:08.000000000 +0300
+@@ -709,6 +709,7 @@
+ #: elf32-lm32.c:1160 elf32-m32c.c:553 elf32-m32r.c:3066 elf32-m68hc1x.c:1283
+ #: elf32-mep.c:535 elf32-metag.c:1992 elf32-microblaze.c:1560
+ #: elf32-moxie.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
++#: elf32-lldevcpu.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
+ #: elf32-score.c:2729 elf32-score7.c:2537 elf32-spu.c:5041
+ #: elf32-tilepro.c:3666 elf32-v850.c:2281 elf32-xstormy16.c:936
+ #: elf64-mmix.c:1538 elfxx-tilegx.c:4051
+@@ -721,6 +722,7 @@
+ #: elf32-i860.c:1216 elf32-iq2000.c:692 elf32-lm32.c:1164 elf32-m32c.c:557
+ #: elf32-m32r.c:3070 elf32-m68hc1x.c:1287 elf32-mep.c:539 elf32-metag.c:1996
+ #: elf32-microblaze.c:1564 elf32-moxie.c:286 elf32-msp430.c:1321
++#: elf32-microblaze.c:1564 elf32-lldevcpu.c:286 elf32-msp430.c:1321
+ #: elf32-nds32.c:4914 elf32-openrisc.c:408 elf32-score.c:2733
+ #: elf32-score7.c:2541 elf32-spu.c:5045 elf32-tilepro.c:3670 elf32-v850.c:2285
+ #: elf32-xstormy16.c:940 elf64-mmix.c:1542 elfxx-mips.c:9995
+@@ -742,6 +744,7 @@
+ #: elf32-lm32.c:1172 elf32-m32c.c:565 elf32-m32r.c:3078 elf32-m68hc1x.c:1295
+ #: elf32-mep.c:547 elf32-metag.c:2004 elf32-microblaze.c:1572
+ #: elf32-moxie.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
++#: elf32-lldevcpu.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
+ #: elf32-openrisc.c:416 elf32-score.c:2746 elf32-score7.c:2549
+ #: elf32-spu.c:5053 elf32-tilepro.c:3678 elf32-v850.c:2305
+ #: elf32-xstormy16.c:948 elf64-mmix.c:1550 elfxx-tilegx.c:4063
+@@ -1339,6 +1342,7 @@
+ #: elf32-fr30.c:597 elf32-frv.c:4047 elf32-i860.c:1220 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:696 elf32-m32c.c:561 elf32-mep.c:543 elf32-metag.c:2000
+ #: elf32-moxie.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
++#: elf32-lldevcpu.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
+ #: elf32-tilepro.c:3674 elf32-v850.c:2289 elf32-xstormy16.c:944
+ #: elf64-mmix.c:1546 elfxx-tilegx.c:4059
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/po/es.po binutils-2.34-lldevcpu/bfd/po/es.po
+--- binutils-2.34/bfd/po/es.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/es.po	2020-06-29 20:53:52.000000000 +0300
+@@ -965,6 +965,7 @@
+ #: elf32-iq2000.c:689 elf32-lm32.c:1106 elf32-m32c.c:622 elf32-m32r.c:3031
+ #: elf32-m68hc1x.c:1265 elf32-mep.c:524 elf32-metag.c:1985
+ #: elf32-microblaze.c:1556 elf32-moxie.c:285 elf32-mt.c:400 elf32-nds32.c:5328
++#: elf32-microblaze.c:1556 elf32-lldevcpu.c:285 elf32-mt.c:400 elf32-nds32.c:5328
+ #: elf32-or1k.c:1238 elf32-score.c:2731 elf32-score7.c:2540 elf32-spu.c:5076
+ #: elf32-tilepro.c:3497 elf32-v850.c:2283 elf32-visium.c:677
+ #: elf32-xstormy16.c:923 elf64-mmix.c:1538 elfxx-tilegx.c:3857
+@@ -978,6 +979,7 @@
+ #: elf32-h8300.c:526 elf32-i860.c:1214 elf32-iq2000.c:693 elf32-lm32.c:1110
+ #: elf32-m32c.c:626 elf32-m32r.c:3035 elf32-m68hc1x.c:1269 elf32-mep.c:528
+ #: elf32-metag.c:1989 elf32-microblaze.c:1560 elf32-moxie.c:289
++#: elf32-metag.c:1989 elf32-microblaze.c:1560 elf32-lldevcpu.c:289
+ #: elf32-msp430.c:1357 elf32-nds32.c:5332 elf32-or1k.c:1242 elf32-score.c:2735
+ #: elf32-score7.c:2544 elf32-spu.c:5080 elf32-tilepro.c:3501 elf32-v850.c:2287
+ #: elf32-visium.c:681 elf32-xstormy16.c:927 elf64-mmix.c:1542
+@@ -1000,6 +1002,7 @@
+ #: elf32-iq2000.c:701 elf32-lm32.c:1118 elf32-m32c.c:634 elf32-m32r.c:3043
+ #: elf32-m68hc1x.c:1277 elf32-mep.c:536 elf32-metag.c:1997
+ #: elf32-microblaze.c:1568 elf32-moxie.c:297 elf32-msp430.c:1365
++#: elf32-microblaze.c:1568 elf32-lldevcpu.c:297 elf32-msp430.c:1365
+ #: elf32-mt.c:408 elf32-nds32.c:5340 elf32-or1k.c:1250 elf32-score.c:2748
+ #: elf32-score7.c:2552 elf32-spu.c:5088 elf32-tilepro.c:3509 elf32-v850.c:2307
+ #: elf32-visium.c:689 elf32-xstormy16.c:935 elf64-mmix.c:1550
+@@ -1980,6 +1983,7 @@
+ #: elf32-fr30.c:599 elf32-frv.c:4049 elf32-ft32.c:493 elf32-i860.c:1218
+ #: elf32-ip2k.c:1486 elf32-iq2000.c:697 elf32-m32c.c:630 elf32-mep.c:532
+ #: elf32-metag.c:1993 elf32-moxie.c:293 elf32-msp430.c:1361 elf32-mt.c:404
++#: elf32-metag.c:1993 elf32-lldevcpu.c:293 elf32-msp430.c:1361 elf32-mt.c:404
+ #: elf32-or1k.c:1246 elf32-tilepro.c:3505 elf32-v850.c:2291 elf32-visium.c:685
+ #: elf32-xstormy16.c:931 elf64-mmix.c:1546 elfxx-tilegx.c:3865
+ #: /work/sources/binutils/branches/2.30/bfd/elfnn-riscv.c:2245
+@@ -2795,6 +2799,11 @@
+ msgid "%B: invalid Moxie reloc number: %d"
+ msgstr "%B: número reubicante Moxie no válido: %d"
+ 
++#: elf32-lldevcpu.c:137
++#, c-format
++msgid "%B: invalid Lldevcpu reloc number: %d"
++msgstr "%B: número reubicante Lldevcpu no válido: %d"
++
+ #: elf32-msp430.c:648
+ #, c-format
+ msgid "%B: invalid MSP430X reloc number: %d"
+diff -ruN binutils-2.34/bfd/po/fi.po binutils-2.34-lldevcpu/bfd/po/fi.po
+--- binutils-2.34/bfd/po/fi.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/fi.po	2020-06-29 20:55:04.000000000 +0300
+@@ -702,6 +702,7 @@
+ #: elf32-lm32.c:1160 elf32-m32c.c:553 elf32-m32r.c:3066 elf32-m68hc1x.c:1283
+ #: elf32-mep.c:535 elf32-metag.c:1992 elf32-microblaze.c:1560
+ #: elf32-moxie.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
++#: elf32-lldevcpu.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
+ #: elf32-score.c:2729 elf32-score7.c:2537 elf32-spu.c:5041
+ #: elf32-tilepro.c:3666 elf32-v850.c:2281 elf32-xstormy16.c:936
+ #: elf64-mmix.c:1538 elfxx-tilegx.c:4051
+@@ -714,6 +715,7 @@
+ #: elf32-i860.c:1216 elf32-iq2000.c:692 elf32-lm32.c:1164 elf32-m32c.c:557
+ #: elf32-m32r.c:3070 elf32-m68hc1x.c:1287 elf32-mep.c:539 elf32-metag.c:1996
+ #: elf32-microblaze.c:1564 elf32-moxie.c:286 elf32-msp430.c:1321
++#: elf32-microblaze.c:1564 elf32-lldevcpu.c:286 elf32-msp430.c:1321
+ #: elf32-nds32.c:4914 elf32-openrisc.c:408 elf32-score.c:2733
+ #: elf32-score7.c:2541 elf32-spu.c:5045 elf32-tilepro.c:3670 elf32-v850.c:2285
+ #: elf32-xstormy16.c:940 elf64-mmix.c:1542 elfxx-mips.c:9995
+@@ -735,6 +737,7 @@
+ #: elf32-lm32.c:1172 elf32-m32c.c:565 elf32-m32r.c:3078 elf32-m68hc1x.c:1295
+ #: elf32-mep.c:547 elf32-metag.c:2004 elf32-microblaze.c:1572
+ #: elf32-moxie.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
++#: elf32-lldevcpu.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
+ #: elf32-openrisc.c:416 elf32-score.c:2746 elf32-score7.c:2549
+ #: elf32-spu.c:5053 elf32-tilepro.c:3678 elf32-v850.c:2305
+ #: elf32-xstormy16.c:948 elf64-mmix.c:1550 elfxx-tilegx.c:4063
+@@ -1335,6 +1338,7 @@
+ #: elf32-fr30.c:597 elf32-frv.c:4047 elf32-i860.c:1220 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:696 elf32-m32c.c:561 elf32-mep.c:543 elf32-metag.c:2000
+ #: elf32-moxie.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
++#: elf32-lldevcpu.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
+ #: elf32-tilepro.c:3674 elf32-v850.c:2289 elf32-xstormy16.c:944
+ #: elf64-mmix.c:1546 elfxx-tilegx.c:4059
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/po/fr.po binutils-2.34-lldevcpu/bfd/po/fr.po
+--- binutils-2.34/bfd/po/fr.po	2020-01-23 16:27:42.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/fr.po	2020-06-29 20:56:34.000000000 +0300
+@@ -76,6 +76,7 @@
+ #: elf32-m68hc12.c:510 elf32-m68k.c:354 elf32-mcore.c:354 elf32-mcore.c:440
+ #: elf32-mep.c:389 elf32-metag.c:878 elf32-microblaze.c:692
+ #: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-moxie.c:137
++#: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-lldevcpu.c:137
+ #: elf32-msp430.c:651 elf32-msp430.c:661 elf32-mt.c:241 elf32-nds32.c:3240
+ #: elf32-nds32.c:3266 elf32-nds32.c:5177 elf32-nios2.c:3015 elf32-or1k.c:1037
+ #: elf32-pj.c:326 elf32-ppc.c:901 elf32-ppc.c:914 elf32-pru.c:423
+@@ -850,6 +851,7 @@
+ #: elf32-h8300.c:523 elf32-ip2k.c:1482 elf32-iq2000.c:691 elf32-lm32.c:1112
+ #: elf32-m32c.c:624 elf32-m32r.c:3045 elf32-m68hc1x.c:1272 elf32-mep.c:526
+ #: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-moxie.c:288 elf32-mt.c:402
++#: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-lldevcpu.c:288 elf32-mt.c:402
+ #: elf32-nds32.c:6192 elf32-or1k.c:1759 elf32-score.c:2733 elf32-score7.c:2542
+ #: elf32-spu.c:5086 elf32-tilepro.c:3505 elf32-v850.c:2290 elf32-visium.c:680
+ #: elf32-xstormy16.c:929 elf64-bpf.c:487 elf64-mmix.c:1541 elfxx-tilegx.c:3869
+@@ -862,6 +864,7 @@
+ #: elf32-iq2000.c:695 elf32-lm32.c:1116 elf32-m32c.c:628 elf32-m32r.c:3049
+ #: elf32-m68hc1x.c:1276 elf32-mep.c:530 elf32-metag.c:1994
+ #: elf32-microblaze.c:1635 elf32-moxie.c:292 elf32-msp430.c:1365
++#: elf32-microblaze.c:1635 elf32-lldevcpu.c:292 elf32-msp430.c:1365
+ #: elf32-nds32.c:6196 elf32-or1k.c:1763 elf32-score.c:2737 elf32-score7.c:2546
+ #: elf32-spu.c:5090 elf32-tilepro.c:3509 elf32-v850.c:2294 elf32-visium.c:684
+ #: elf32-xstormy16.c:933 elf64-mmix.c:1545 elfxx-mips.c:10575
+@@ -882,6 +885,7 @@
+ #: elf32-h8300.c:535 elf32-ip2k.c:1497 elf32-iq2000.c:703 elf32-lm32.c:1124
+ #: elf32-m32c.c:636 elf32-m32r.c:3057 elf32-m68hc1x.c:1284 elf32-mep.c:538
+ #: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-moxie.c:300
++#: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-lldevcpu.c:300
+ #: elf32-msp430.c:1373 elf32-mt.c:410 elf32-nds32.c:6204 elf32-or1k.c:1771
+ #: elf32-score.c:2750 elf32-score7.c:2554 elf32-spu.c:5098
+ #: elf32-tilepro.c:3517 elf32-v850.c:2314 elf32-visium.c:692
+@@ -1989,6 +1993,7 @@
+ #: elf32-fr30.c:602 elf32-frv.c:4053 elf32-ft32.c:502 elf32-ip2k.c:1493
+ #: elf32-iq2000.c:699 elf32-m32c.c:632 elf32-mep.c:534 elf32-metag.c:1998
+ #: elf32-moxie.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
++#: elf32-lldevcpu.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
+ #: elf32-tilepro.c:3513 elf32-v850.c:2298 elf32-visium.c:688
+ #: elf32-xstormy16.c:937 elf64-bpf.c:496 elf64-mmix.c:1549 elfxx-tilegx.c:3877
+ msgid "internal error: dangerous relocation"
+@@ -9042,6 +9047,9 @@
+ #~ msgid "%B: invalid Moxie reloc number: %d"
+ #~ msgstr "%B: numéro de réadressage Moxie invalide: %d"
+ 
++#~ msgid "%B: invalid Lldevcpu reloc number: %d"
++#~ msgstr "%B: numéro de réadressage Lldevcpu invalide: %d"
++
+ #~ msgid "%B: invalid MSP430X reloc number: %d"
+ #~ msgstr "%B: numéro de réadressage MSP430X invalide: %d"
+ 
+diff -ruN binutils-2.34/bfd/po/hr.po binutils-2.34-lldevcpu/bfd/po/hr.po
+--- binutils-2.34/bfd/po/hr.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/hr.po	2020-06-29 20:57:24.000000000 +0300
+@@ -654,6 +654,7 @@
+ #: elf32-h8300.c:509 elf32-i860.c:1211 elf32-ip2k.c:1468 elf32-iq2000.c:684
+ #: elf32-lm32.c:1168 elf32-m32c.c:553 elf32-m32r.c:3106 elf32-m68hc1x.c:1138
+ #: elf32-mep.c:535 elf32-microblaze.c:1231 elf32-moxie.c:282
++#: elf32-mep.c:535 elf32-microblaze.c:1231 elf32-lldevcpu.c:282
+ #: elf32-msp430.c:486 elf32-mt.c:395 elf32-openrisc.c:404 elf32-score.c:2729
+ #: elf32-score7.c:2537 elf32-spu.c:5044 elf32-tilepro.c:3214 elf32-v850.c:2143
+ #: elf32-xstormy16.c:935 elf64-mmix.c:1590 elfxx-tilegx.c:3577
+@@ -666,6 +667,7 @@
+ #: elf32-i860.c:1215 elf32-iq2000.c:688 elf32-lm32.c:1172 elf32-m32c.c:557
+ #: elf32-m32r.c:3110 elf32-m68hc1x.c:1142 elf32-mep.c:539
+ #: elf32-microblaze.c:1235 elf32-moxie.c:286 elf32-msp430.c:490
++#: elf32-microblaze.c:1235 elf32-lldevcpu.c:286 elf32-msp430.c:490
+ #: elf32-openrisc.c:408 elf32-score.c:2733 elf32-score7.c:2541
+ #: elf32-spu.c:5048 elf32-tilepro.c:3218 elf32-v850.c:2147
+ #: elf32-xstormy16.c:939 elf64-mmix.c:1594 elfxx-mips.c:9465
+@@ -686,6 +688,7 @@
+ #: elf32-h8300.c:521 elf32-i860.c:1223 elf32-ip2k.c:1483 elf32-iq2000.c:696
+ #: elf32-lm32.c:1180 elf32-m32c.c:565 elf32-m32r.c:3118 elf32-m68hc1x.c:1150
+ #: elf32-mep.c:547 elf32-microblaze.c:1243 elf32-moxie.c:294
++#: elf32-mep.c:547 elf32-microblaze.c:1243 elf32-lldevcpu.c:294
+ #: elf32-msp430.c:498 elf32-mt.c:403 elf32-openrisc.c:416 elf32-score.c:2746
+ #: elf32-score7.c:2549 elf32-spu.c:5056 elf32-tilepro.c:3226 elf32-v850.c:2167
+ #: elf32-xstormy16.c:947 elf64-mmix.c:1602 elfxx-tilegx.c:3589
+@@ -1231,6 +1234,7 @@
+ #: elf32-avr.c:1229 elf32-bfin.c:3221 elf32-cris.c:2089 elf32-epiphany.c:567
+ #: elf32-fr30.c:617 elf32-frv.c:4113 elf32-i860.c:1219 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:692 elf32-m32c.c:561 elf32-mep.c:543 elf32-moxie.c:290
++#: elf32-iq2000.c:692 elf32-m32c.c:561 elf32-mep.c:543 elf32-lldevcpu.c:290
+ #: elf32-msp430.c:494 elf32-mt.c:399 elf32-openrisc.c:412 elf32-tilepro.c:3222
+ #: elf32-v850.c:2151 elf32-xstormy16.c:943 elf64-mmix.c:1598
+ #: elfxx-tilegx.c:3585
+diff -ruN binutils-2.34/bfd/po/id.po binutils-2.34-lldevcpu/bfd/po/id.po
+--- binutils-2.34/bfd/po/id.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/id.po	2020-06-29 20:58:06.000000000 +0300
+@@ -673,6 +673,7 @@
+ #: elf32-h8300.c:509 elf32-i860.c:1211 elf32-ip2k.c:1468 elf32-iq2000.c:684
+ #: elf32-lm32.c:1168 elf32-m32c.c:553 elf32-m32r.c:3106 elf32-m68hc1x.c:1138
+ #: elf32-mep.c:535 elf32-microblaze.c:1231 elf32-moxie.c:282
++#: elf32-mep.c:535 elf32-microblaze.c:1231 elf32-lldevcpu.c:282
+ #: elf32-msp430.c:486 elf32-mt.c:395 elf32-openrisc.c:404 elf32-score.c:2729
+ #: elf32-score7.c:2537 elf32-spu.c:5044 elf32-tilepro.c:3214 elf32-v850.c:2143
+ #: elf32-xstormy16.c:935 elf64-mmix.c:1590 elfxx-tilegx.c:3577
+@@ -685,6 +686,7 @@
+ #: elf32-i860.c:1215 elf32-iq2000.c:688 elf32-lm32.c:1172 elf32-m32c.c:557
+ #: elf32-m32r.c:3110 elf32-m68hc1x.c:1142 elf32-mep.c:539
+ #: elf32-microblaze.c:1235 elf32-moxie.c:286 elf32-msp430.c:490
++#: elf32-microblaze.c:1235 elf32-lldevcpu.c:286 elf32-msp430.c:490
+ #: elf32-openrisc.c:408 elf32-score.c:2733 elf32-score7.c:2541
+ #: elf32-spu.c:5048 elf32-tilepro.c:3218 elf32-v850.c:2147
+ #: elf32-xstormy16.c:939 elf64-mmix.c:1594 elfxx-mips.c:9465
+@@ -705,6 +707,7 @@
+ #: elf32-h8300.c:521 elf32-i860.c:1223 elf32-ip2k.c:1483 elf32-iq2000.c:696
+ #: elf32-lm32.c:1180 elf32-m32c.c:565 elf32-m32r.c:3118 elf32-m68hc1x.c:1150
+ #: elf32-mep.c:547 elf32-microblaze.c:1243 elf32-moxie.c:294
++#: elf32-mep.c:547 elf32-microblaze.c:1243 elf32-lldevcpu.c:294
+ #: elf32-msp430.c:498 elf32-mt.c:403 elf32-openrisc.c:416 elf32-score.c:2746
+ #: elf32-score7.c:2549 elf32-spu.c:5056 elf32-tilepro.c:3226 elf32-v850.c:2167
+ #: elf32-xstormy16.c:947 elf64-mmix.c:1602 elfxx-tilegx.c:3589
+@@ -1264,6 +1267,7 @@
+ #: elf32-avr.c:1229 elf32-bfin.c:3221 elf32-cris.c:2089 elf32-epiphany.c:567
+ #: elf32-fr30.c:617 elf32-frv.c:4113 elf32-i860.c:1219 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:692 elf32-m32c.c:561 elf32-mep.c:543 elf32-moxie.c:290
++#: elf32-iq2000.c:692 elf32-m32c.c:561 elf32-mep.c:543 elf32-lldevcpu.c:290
+ #: elf32-msp430.c:494 elf32-mt.c:399 elf32-openrisc.c:412 elf32-tilepro.c:3222
+ #: elf32-v850.c:2151 elf32-xstormy16.c:943 elf64-mmix.c:1598
+ #: elfxx-tilegx.c:3585
+diff -ruN binutils-2.34/bfd/po/ja.po binutils-2.34-lldevcpu/bfd/po/ja.po
+--- binutils-2.34/bfd/po/ja.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/ja.po	2020-06-29 20:59:00.000000000 +0300
+@@ -678,6 +678,7 @@
+ #: elf32-i860.c:1211 elf32-ip2k.c:1468 elf32-iq2000.c:684 elf32-lm32.c:1168
+ #: elf32-m32c.c:553 elf32-m32r.c:3111 elf32-m68hc1x.c:1138 elf32-mep.c:535
+ #: elf32-microblaze.c:1231 elf32-moxie.c:282 elf32-msp430.c:486 elf32-mt.c:395
++#: elf32-microblaze.c:1231 elf32-lldevcpu.c:282 elf32-msp430.c:486 elf32-mt.c:395
+ #: elf32-openrisc.c:404 elf32-score.c:2731 elf32-score7.c:2540
+ #: elf32-spu.c:5042 elf32-v850.c:2143 elf32-xstormy16.c:941 elf64-mmix.c:1522
+ msgid "internal error: out of range error"
+@@ -689,6 +690,7 @@
+ #: elf32-i860.c:1215 elf32-iq2000.c:688 elf32-lm32.c:1172 elf32-m32c.c:557
+ #: elf32-m32r.c:3115 elf32-m68hc1x.c:1142 elf32-mep.c:539
+ #: elf32-microblaze.c:1235 elf32-moxie.c:286 elf32-msp430.c:490
++#: elf32-microblaze.c:1235 elf32-lldevcpu.c:286 elf32-msp430.c:490
+ #: elf32-openrisc.c:408 elf32-score.c:2735 elf32-score7.c:2544
+ #: elf32-spu.c:5046 elf32-v850.c:2147 elf32-xstormy16.c:945 elf64-mmix.c:1526
+ #: elfxx-mips.c:9193
+@@ -708,6 +710,7 @@
+ #: elf32-i860.c:1223 elf32-ip2k.c:1483 elf32-iq2000.c:696 elf32-lm32.c:1180
+ #: elf32-m32c.c:565 elf32-m32r.c:3123 elf32-m68hc1x.c:1150 elf32-mep.c:547
+ #: elf32-microblaze.c:1243 elf32-moxie.c:294 elf32-msp430.c:498 elf32-mt.c:403
++#: elf32-microblaze.c:1243 elf32-lldevcpu.c:294 elf32-msp430.c:498 elf32-mt.c:403
+ #: elf32-openrisc.c:416 elf32-score.c:2748 elf32-score7.c:2552
+ #: elf32-spu.c:5054 elf32-v850.c:2167 elf32-xstormy16.c:953 elf64-mmix.c:1534
+ msgid "internal error: unknown error"
+@@ -1267,6 +1270,7 @@
+ #: elf32-avr.c:1229 elf32-bfin.c:3217 elf32-cris.c:2085 elf32-fr30.c:617
+ #: elf32-frv.c:4110 elf32-i860.c:1219 elf32-ip2k.c:1479 elf32-iq2000.c:692
+ #: elf32-m32c.c:561 elf32-mep.c:543 elf32-moxie.c:290 elf32-msp430.c:494
++#: elf32-m32c.c:561 elf32-mep.c:543 elf32-lldevcpu.c:290 elf32-msp430.c:494
+ #: elf32-mt.c:399 elf32-openrisc.c:412 elf32-v850.c:2151 elf32-xstormy16.c:949
+ #: elf64-mmix.c:1530
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/po/pt.po binutils-2.34-lldevcpu/bfd/po/pt.po
+--- binutils-2.34/bfd/po/pt.po	2020-01-20 16:53:42.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/pt.po	2020-06-29 21:00:30.000000000 +0300
+@@ -77,6 +77,7 @@
+ #: elf32-m68hc12.c:510 elf32-m68k.c:354 elf32-mcore.c:354 elf32-mcore.c:440
+ #: elf32-mep.c:389 elf32-metag.c:878 elf32-microblaze.c:692
+ #: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-moxie.c:137
++#: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-lldevcpu.c:137
+ #: elf32-msp430.c:651 elf32-msp430.c:661 elf32-mt.c:241 elf32-nds32.c:3240
+ #: elf32-nds32.c:3266 elf32-nds32.c:5177 elf32-nios2.c:3015 elf32-or1k.c:1037
+ #: elf32-pj.c:326 elf32-ppc.c:901 elf32-ppc.c:914 elf32-pru.c:423
+@@ -853,6 +854,7 @@
+ #: elf32-h8300.c:523 elf32-ip2k.c:1482 elf32-iq2000.c:691 elf32-lm32.c:1112
+ #: elf32-m32c.c:624 elf32-m32r.c:3045 elf32-m68hc1x.c:1272 elf32-mep.c:526
+ #: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-moxie.c:288 elf32-mt.c:402
++#: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-lldevcpu.c:288 elf32-mt.c:402
+ #: elf32-nds32.c:6192 elf32-or1k.c:1759 elf32-score.c:2733 elf32-score7.c:2542
+ #: elf32-spu.c:5086 elf32-tilepro.c:3505 elf32-v850.c:2290 elf32-visium.c:680
+ #: elf32-xstormy16.c:929 elf64-bpf.c:487 elf64-mmix.c:1541 elfxx-tilegx.c:3869
+@@ -865,6 +867,7 @@
+ #: elf32-iq2000.c:695 elf32-lm32.c:1116 elf32-m32c.c:628 elf32-m32r.c:3049
+ #: elf32-m68hc1x.c:1276 elf32-mep.c:530 elf32-metag.c:1994
+ #: elf32-microblaze.c:1635 elf32-moxie.c:292 elf32-msp430.c:1365
++#: elf32-microblaze.c:1635 elf32-lldevcpu.c:292 elf32-msp430.c:1365
+ #: elf32-nds32.c:6196 elf32-or1k.c:1763 elf32-score.c:2737 elf32-score7.c:2546
+ #: elf32-spu.c:5090 elf32-tilepro.c:3509 elf32-v850.c:2294 elf32-visium.c:684
+ #: elf32-xstormy16.c:933 elf64-mmix.c:1545 elfxx-mips.c:10575
+@@ -885,6 +888,7 @@
+ #: elf32-h8300.c:535 elf32-ip2k.c:1497 elf32-iq2000.c:703 elf32-lm32.c:1124
+ #: elf32-m32c.c:636 elf32-m32r.c:3057 elf32-m68hc1x.c:1284 elf32-mep.c:538
+ #: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-moxie.c:300
++#: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-lldevcpu.c:300
+ #: elf32-msp430.c:1373 elf32-mt.c:410 elf32-nds32.c:6204 elf32-or1k.c:1771
+ #: elf32-score.c:2750 elf32-score7.c:2554 elf32-spu.c:5098
+ #: elf32-tilepro.c:3517 elf32-v850.c:2314 elf32-visium.c:692
+@@ -1991,6 +1995,7 @@
+ #: elf32-fr30.c:602 elf32-frv.c:4053 elf32-ft32.c:502 elf32-ip2k.c:1493
+ #: elf32-iq2000.c:699 elf32-m32c.c:632 elf32-mep.c:534 elf32-metag.c:1998
+ #: elf32-moxie.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
++#: elf32-lldevcpu.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
+ #: elf32-tilepro.c:3513 elf32-v850.c:2298 elf32-visium.c:688
+ #: elf32-xstormy16.c:937 elf64-bpf.c:496 elf64-mmix.c:1549 elfxx-tilegx.c:3877
+ msgid "internal error: dangerous relocation"
+@@ -9043,6 +9048,9 @@
+ #~ msgid "%B: invalid Moxie reloc number: %d"
+ #~ msgstr "%B: número de reloc Moxie inválido: %d"
+ 
++#~ msgid "%B: invalid Lldevcpu reloc number: %d"
++#~ msgstr "%B: número de reloc Lldevcpu inválido: %d"
++
+ #~ msgid "%B: invalid MSP430X reloc number: %d"
+ #~ msgstr "%B: número de reloc MSP430X inválido: %d"
+ 
+diff -ruN binutils-2.34/bfd/po/ru.po binutils-2.34-lldevcpu/bfd/po/ru.po
+--- binutils-2.34/bfd/po/ru.po	2020-01-20 16:53:56.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/ru.po	2020-06-29 21:02:00.000000000 +0300
+@@ -77,6 +77,7 @@
+ #: elf32-m68hc12.c:510 elf32-m68k.c:354 elf32-mcore.c:354 elf32-mcore.c:440
+ #: elf32-mep.c:389 elf32-metag.c:878 elf32-microblaze.c:692
+ #: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-moxie.c:137
++#: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-lldevcpu.c:137
+ #: elf32-msp430.c:651 elf32-msp430.c:661 elf32-mt.c:241 elf32-nds32.c:3240
+ #: elf32-nds32.c:3266 elf32-nds32.c:5177 elf32-nios2.c:3015 elf32-or1k.c:1037
+ #: elf32-pj.c:326 elf32-ppc.c:901 elf32-ppc.c:914 elf32-pru.c:423
+@@ -851,6 +852,7 @@
+ #: elf32-h8300.c:523 elf32-ip2k.c:1482 elf32-iq2000.c:691 elf32-lm32.c:1112
+ #: elf32-m32c.c:624 elf32-m32r.c:3045 elf32-m68hc1x.c:1272 elf32-mep.c:526
+ #: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-moxie.c:288 elf32-mt.c:402
++#: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-lldevcpu.c:288 elf32-mt.c:402
+ #: elf32-nds32.c:6192 elf32-or1k.c:1759 elf32-score.c:2733 elf32-score7.c:2542
+ #: elf32-spu.c:5086 elf32-tilepro.c:3505 elf32-v850.c:2290 elf32-visium.c:680
+ #: elf32-xstormy16.c:929 elf64-bpf.c:487 elf64-mmix.c:1541 elfxx-tilegx.c:3869
+@@ -863,6 +865,7 @@
+ #: elf32-iq2000.c:695 elf32-lm32.c:1116 elf32-m32c.c:628 elf32-m32r.c:3049
+ #: elf32-m68hc1x.c:1276 elf32-mep.c:530 elf32-metag.c:1994
+ #: elf32-microblaze.c:1635 elf32-moxie.c:292 elf32-msp430.c:1365
++#: elf32-microblaze.c:1635 elf32-lldevcpu.c:292 elf32-msp430.c:1365
+ #: elf32-nds32.c:6196 elf32-or1k.c:1763 elf32-score.c:2737 elf32-score7.c:2546
+ #: elf32-spu.c:5090 elf32-tilepro.c:3509 elf32-v850.c:2294 elf32-visium.c:684
+ #: elf32-xstormy16.c:933 elf64-mmix.c:1545 elfxx-mips.c:10575
+@@ -883,6 +886,7 @@
+ #: elf32-h8300.c:535 elf32-ip2k.c:1497 elf32-iq2000.c:703 elf32-lm32.c:1124
+ #: elf32-m32c.c:636 elf32-m32r.c:3057 elf32-m68hc1x.c:1284 elf32-mep.c:538
+ #: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-moxie.c:300
++#: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-lldevcpu.c:300
+ #: elf32-msp430.c:1373 elf32-mt.c:410 elf32-nds32.c:6204 elf32-or1k.c:1771
+ #: elf32-score.c:2750 elf32-score7.c:2554 elf32-spu.c:5098
+ #: elf32-tilepro.c:3517 elf32-v850.c:2314 elf32-visium.c:692
+@@ -1987,6 +1991,7 @@
+ #: elf32-fr30.c:602 elf32-frv.c:4053 elf32-ft32.c:502 elf32-ip2k.c:1493
+ #: elf32-iq2000.c:699 elf32-m32c.c:632 elf32-mep.c:534 elf32-metag.c:1998
+ #: elf32-moxie.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
++#: elf32-lldevcpu.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
+ #: elf32-tilepro.c:3513 elf32-v850.c:2298 elf32-visium.c:688
+ #: elf32-xstormy16.c:937 elf64-bpf.c:496 elf64-mmix.c:1549 elfxx-tilegx.c:3877
+ msgid "internal error: dangerous relocation"
+@@ -9024,6 +9029,9 @@
+ #~ msgid "%B: invalid Moxie reloc number: %d"
+ #~ msgstr "%B: некорректный номер перемещения Moxie: %d"
+ 
++#~ msgid "%B: invalid Lldevcpu reloc number: %d"
++#~ msgstr "%B: некорректный номер перемещения Lldevcpu: %d"
++
+ #~ msgid "%B: invalid MSP430X reloc number: %d"
+ #~ msgstr "%B: некорректный номер перемещения MSP430X: %d"
+ 
+diff -ruN binutils-2.34/bfd/po/SRC-POTFILES.in binutils-2.34-lldevcpu/bfd/po/SRC-POTFILES.in
+--- binutils-2.34/bfd/po/SRC-POTFILES.in	2020-02-01 13:49:22.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/SRC-POTFILES.in	2020-06-28 11:18:22.000000000 +0300
+@@ -90,6 +90,7 @@
+ cpu-mips.c
+ cpu-mmix.c
+ cpu-moxie.c
++cpu-lldevcpu.c
+ cpu-msp430.c
+ cpu-mt.c
+ cpu-nds32.c
+@@ -197,6 +198,7 @@
+ elf32-microblaze.c
+ elf32-mips.c
+ elf32-moxie.c
++elf32-lldevcpu.c
+ elf32-msp430.c
+ elf32-mt.c
+ elf32-nds32.c
+diff -ruN binutils-2.34/bfd/po/sr.po binutils-2.34-lldevcpu/bfd/po/sr.po
+--- binutils-2.34/bfd/po/sr.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/sr.po	2020-06-29 21:03:06.000000000 +0300
+@@ -691,6 +691,7 @@
+ #: elf32-lm32.c:1160 elf32-m32c.c:553 elf32-m32r.c:3066 elf32-m68hc1x.c:1283
+ #: elf32-mep.c:535 elf32-metag.c:1992 elf32-microblaze.c:1560
+ #: elf32-moxie.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
++#: elf32-lldevcpu.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
+ #: elf32-score.c:2729 elf32-score7.c:2537 elf32-spu.c:5041
+ #: elf32-tilepro.c:3666 elf32-v850.c:2281 elf32-xstormy16.c:936
+ #: elf64-mmix.c:1538 elfxx-tilegx.c:4051
+@@ -703,6 +704,7 @@
+ #: elf32-i860.c:1216 elf32-iq2000.c:692 elf32-lm32.c:1164 elf32-m32c.c:557
+ #: elf32-m32r.c:3070 elf32-m68hc1x.c:1287 elf32-mep.c:539 elf32-metag.c:1996
+ #: elf32-microblaze.c:1564 elf32-moxie.c:286 elf32-msp430.c:1321
++#: elf32-microblaze.c:1564 elf32-lldevcpu.c:286 elf32-msp430.c:1321
+ #: elf32-nds32.c:4914 elf32-openrisc.c:408 elf32-score.c:2733
+ #: elf32-score7.c:2541 elf32-spu.c:5045 elf32-tilepro.c:3670 elf32-v850.c:2285
+ #: elf32-xstormy16.c:940 elf64-mmix.c:1542 elfxx-mips.c:9995
+@@ -724,6 +726,7 @@
+ #: elf32-lm32.c:1172 elf32-m32c.c:565 elf32-m32r.c:3078 elf32-m68hc1x.c:1295
+ #: elf32-mep.c:547 elf32-metag.c:2004 elf32-microblaze.c:1572
+ #: elf32-moxie.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
++#: elf32-lldevcpu.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
+ #: elf32-openrisc.c:416 elf32-score.c:2746 elf32-score7.c:2549
+ #: elf32-spu.c:5053 elf32-tilepro.c:3678 elf32-v850.c:2305
+ #: elf32-xstormy16.c:948 elf64-mmix.c:1550 elfxx-tilegx.c:4063
+@@ -1320,6 +1323,7 @@
+ #: elf32-fr30.c:597 elf32-frv.c:4047 elf32-i860.c:1220 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:696 elf32-m32c.c:561 elf32-mep.c:543 elf32-metag.c:2000
+ #: elf32-moxie.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
++#: elf32-lldevcpu.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
+ #: elf32-tilepro.c:3674 elf32-v850.c:2289 elf32-xstormy16.c:944
+ #: elf64-mmix.c:1546 elfxx-tilegx.c:4059
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/po/sv.po binutils-2.34-lldevcpu/bfd/po/sv.po
+--- binutils-2.34/bfd/po/sv.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/sv.po	2020-06-29 21:04:06.000000000 +0300
+@@ -695,6 +695,7 @@
+ #: elf32-lm32.c:1160 elf32-m32c.c:553 elf32-m32r.c:3066 elf32-m68hc1x.c:1283
+ #: elf32-mep.c:535 elf32-metag.c:1992 elf32-microblaze.c:1560
+ #: elf32-moxie.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
++#: elf32-lldevcpu.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
+ #: elf32-score.c:2729 elf32-score7.c:2537 elf32-spu.c:5041
+ #: elf32-tilepro.c:3666 elf32-v850.c:2281 elf32-xstormy16.c:936
+ #: elf64-mmix.c:1538 elfxx-tilegx.c:4051
+@@ -707,6 +708,7 @@
+ #: elf32-i860.c:1216 elf32-iq2000.c:692 elf32-lm32.c:1164 elf32-m32c.c:557
+ #: elf32-m32r.c:3070 elf32-m68hc1x.c:1287 elf32-mep.c:539 elf32-metag.c:1996
+ #: elf32-microblaze.c:1564 elf32-moxie.c:286 elf32-msp430.c:1321
++#: elf32-microblaze.c:1564 elf32-lldevcpu.c:286 elf32-msp430.c:1321
+ #: elf32-nds32.c:4914 elf32-openrisc.c:408 elf32-score.c:2733
+ #: elf32-score7.c:2541 elf32-spu.c:5045 elf32-tilepro.c:3670 elf32-v850.c:2285
+ #: elf32-xstormy16.c:940 elf64-mmix.c:1542 elfxx-mips.c:9995
+@@ -728,6 +730,7 @@
+ #: elf32-lm32.c:1172 elf32-m32c.c:565 elf32-m32r.c:3078 elf32-m68hc1x.c:1295
+ #: elf32-mep.c:547 elf32-metag.c:2004 elf32-microblaze.c:1572
+ #: elf32-moxie.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
++#: elf32-lldevcpu.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
+ #: elf32-openrisc.c:416 elf32-score.c:2746 elf32-score7.c:2549
+ #: elf32-spu.c:5053 elf32-tilepro.c:3678 elf32-v850.c:2305
+ #: elf32-xstormy16.c:948 elf64-mmix.c:1550 elfxx-tilegx.c:4063
+@@ -1324,6 +1327,7 @@
+ #: elf32-fr30.c:597 elf32-frv.c:4047 elf32-i860.c:1220 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:696 elf32-m32c.c:561 elf32-mep.c:543 elf32-metag.c:2000
+ #: elf32-moxie.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
++#: elf32-lldevcpu.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
+ #: elf32-tilepro.c:3674 elf32-v850.c:2289 elf32-xstormy16.c:944
+ #: elf64-mmix.c:1546 elfxx-tilegx.c:4059
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/po/uk.po binutils-2.34-lldevcpu/bfd/po/uk.po
+--- binutils-2.34/bfd/po/uk.po	2020-01-20 16:54:07.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/uk.po	2020-06-29 21:05:08.000000000 +0300
+@@ -77,6 +77,7 @@
+ #: elf32-m68hc12.c:510 elf32-m68k.c:354 elf32-mcore.c:354 elf32-mcore.c:440
+ #: elf32-mep.c:389 elf32-metag.c:878 elf32-microblaze.c:692
+ #: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-moxie.c:137
++#: elf32-microblaze.c:969 elf32-mips.c:2229 elf32-lldevcpu.c:137
+ #: elf32-msp430.c:651 elf32-msp430.c:661 elf32-mt.c:241 elf32-nds32.c:3240
+ #: elf32-nds32.c:3266 elf32-nds32.c:5177 elf32-nios2.c:3015 elf32-or1k.c:1037
+ #: elf32-pj.c:326 elf32-ppc.c:901 elf32-ppc.c:914 elf32-pru.c:423
+@@ -851,6 +852,7 @@
+ #: elf32-h8300.c:523 elf32-ip2k.c:1482 elf32-iq2000.c:691 elf32-lm32.c:1112
+ #: elf32-m32c.c:624 elf32-m32r.c:3045 elf32-m68hc1x.c:1272 elf32-mep.c:526
+ #: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-moxie.c:288 elf32-mt.c:402
++#: elf32-metag.c:1990 elf32-microblaze.c:1631 elf32-lldevcpu.c:288 elf32-mt.c:402
+ #: elf32-nds32.c:6192 elf32-or1k.c:1759 elf32-score.c:2733 elf32-score7.c:2542
+ #: elf32-spu.c:5086 elf32-tilepro.c:3505 elf32-v850.c:2290 elf32-visium.c:680
+ #: elf32-xstormy16.c:929 elf64-bpf.c:487 elf64-mmix.c:1541 elfxx-tilegx.c:3869
+@@ -863,6 +865,7 @@
+ #: elf32-iq2000.c:695 elf32-lm32.c:1116 elf32-m32c.c:628 elf32-m32r.c:3049
+ #: elf32-m68hc1x.c:1276 elf32-mep.c:530 elf32-metag.c:1994
+ #: elf32-microblaze.c:1635 elf32-moxie.c:292 elf32-msp430.c:1365
++#: elf32-microblaze.c:1635 elf32-lldevcpu.c:292 elf32-msp430.c:1365
+ #: elf32-nds32.c:6196 elf32-or1k.c:1763 elf32-score.c:2737 elf32-score7.c:2546
+ #: elf32-spu.c:5090 elf32-tilepro.c:3509 elf32-v850.c:2294 elf32-visium.c:684
+ #: elf32-xstormy16.c:933 elf64-mmix.c:1545 elfxx-mips.c:10575
+@@ -883,6 +886,7 @@
+ #: elf32-h8300.c:535 elf32-ip2k.c:1497 elf32-iq2000.c:703 elf32-lm32.c:1124
+ #: elf32-m32c.c:636 elf32-m32r.c:3057 elf32-m68hc1x.c:1284 elf32-mep.c:538
+ #: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-moxie.c:300
++#: elf32-metag.c:2002 elf32-microblaze.c:1643 elf32-lldevcpu.c:300
+ #: elf32-msp430.c:1373 elf32-mt.c:410 elf32-nds32.c:6204 elf32-or1k.c:1771
+ #: elf32-score.c:2750 elf32-score7.c:2554 elf32-spu.c:5098
+ #: elf32-tilepro.c:3517 elf32-v850.c:2314 elf32-visium.c:692
+@@ -1987,6 +1991,7 @@
+ #: elf32-fr30.c:602 elf32-frv.c:4053 elf32-ft32.c:502 elf32-ip2k.c:1493
+ #: elf32-iq2000.c:699 elf32-m32c.c:632 elf32-mep.c:534 elf32-metag.c:1998
+ #: elf32-moxie.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
++#: elf32-lldevcpu.c:296 elf32-msp430.c:1369 elf32-mt.c:406 elf32-or1k.c:1767
+ #: elf32-tilepro.c:3513 elf32-v850.c:2298 elf32-visium.c:688
+ #: elf32-xstormy16.c:937 elf64-bpf.c:496 elf64-mmix.c:1549 elfxx-tilegx.c:3877
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/po/vi.po binutils-2.34-lldevcpu/bfd/po/vi.po
+--- binutils-2.34/bfd/po/vi.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/vi.po	2020-06-29 21:05:56.000000000 +0300
+@@ -678,6 +678,7 @@
+ #: elf32-h8300.c:509 elf32-i860.c:1211 elf32-ip2k.c:1468 elf32-iq2000.c:684
+ #: elf32-lm32.c:1168 elf32-m32c.c:553 elf32-m32r.c:3106 elf32-m68hc1x.c:1138
+ #: elf32-mep.c:535 elf32-microblaze.c:1231 elf32-moxie.c:282
++#: elf32-mep.c:535 elf32-microblaze.c:1231 elf32-lldevcpu.c:282
+ #: elf32-msp430.c:486 elf32-mt.c:395 elf32-openrisc.c:404 elf32-score.c:2729
+ #: elf32-score7.c:2537 elf32-spu.c:5044 elf32-tilepro.c:3214 elf32-v850.c:2143
+ #: elf32-xstormy16.c:935 elf64-mmix.c:1590 elfxx-tilegx.c:3577
+@@ -690,6 +691,7 @@
+ #: elf32-i860.c:1215 elf32-iq2000.c:688 elf32-lm32.c:1172 elf32-m32c.c:557
+ #: elf32-m32r.c:3110 elf32-m68hc1x.c:1142 elf32-mep.c:539
+ #: elf32-microblaze.c:1235 elf32-moxie.c:286 elf32-msp430.c:490
++#: elf32-microblaze.c:1235 elf32-lldevcpu.c:286 elf32-msp430.c:490
+ #: elf32-openrisc.c:408 elf32-score.c:2733 elf32-score7.c:2541
+ #: elf32-spu.c:5048 elf32-tilepro.c:3218 elf32-v850.c:2147
+ #: elf32-xstormy16.c:939 elf64-mmix.c:1594 elfxx-mips.c:9465
+@@ -710,6 +712,7 @@
+ #: elf32-h8300.c:521 elf32-i860.c:1223 elf32-ip2k.c:1483 elf32-iq2000.c:696
+ #: elf32-lm32.c:1180 elf32-m32c.c:565 elf32-m32r.c:3118 elf32-m68hc1x.c:1150
+ #: elf32-mep.c:547 elf32-microblaze.c:1243 elf32-moxie.c:294
++#: elf32-mep.c:547 elf32-microblaze.c:1243 elf32-lldevcpu.c:294
+ #: elf32-msp430.c:498 elf32-mt.c:403 elf32-openrisc.c:416 elf32-score.c:2746
+ #: elf32-score7.c:2549 elf32-spu.c:5056 elf32-tilepro.c:3226 elf32-v850.c:2167
+ #: elf32-xstormy16.c:947 elf64-mmix.c:1602 elfxx-tilegx.c:3589
+@@ -1269,6 +1272,7 @@
+ #: elf32-avr.c:1229 elf32-bfin.c:3221 elf32-cris.c:2089 elf32-epiphany.c:567
+ #: elf32-fr30.c:617 elf32-frv.c:4113 elf32-i860.c:1219 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:692 elf32-m32c.c:561 elf32-mep.c:543 elf32-moxie.c:290
++#: elf32-iq2000.c:692 elf32-m32c.c:561 elf32-mep.c:543 elf32-lldevcpu.c:290
+ #: elf32-msp430.c:494 elf32-mt.c:399 elf32-openrisc.c:412 elf32-tilepro.c:3222
+ #: elf32-v850.c:2151 elf32-xstormy16.c:943 elf64-mmix.c:1598
+ #: elfxx-tilegx.c:3585
+diff -ruN binutils-2.34/bfd/po/zh_CN.po binutils-2.34-lldevcpu/bfd/po/zh_CN.po
+--- binutils-2.34/bfd/po/zh_CN.po	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/po/zh_CN.po	2020-06-29 21:06:52.000000000 +0300
+@@ -717,6 +717,7 @@
+ #: elf32-lm32.c:1160 elf32-m32c.c:553 elf32-m32r.c:3066 elf32-m68hc1x.c:1283
+ #: elf32-mep.c:535 elf32-metag.c:1992 elf32-microblaze.c:1560
+ #: elf32-moxie.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
++#: elf32-lldevcpu.c:282 elf32-mt.c:395 elf32-nds32.c:4910 elf32-openrisc.c:404
+ #: elf32-score.c:2729 elf32-score7.c:2537 elf32-spu.c:5041
+ #: elf32-tilepro.c:3666 elf32-v850.c:2281 elf32-xstormy16.c:936
+ #: elf64-mmix.c:1538 elfxx-tilegx.c:4051
+@@ -729,6 +730,7 @@
+ #: elf32-i860.c:1216 elf32-iq2000.c:692 elf32-lm32.c:1164 elf32-m32c.c:557
+ #: elf32-m32r.c:3070 elf32-m68hc1x.c:1287 elf32-mep.c:539 elf32-metag.c:1996
+ #: elf32-microblaze.c:1564 elf32-moxie.c:286 elf32-msp430.c:1321
++#: elf32-microblaze.c:1564 elf32-lldevcpu.c:286 elf32-msp430.c:1321
+ #: elf32-nds32.c:4914 elf32-openrisc.c:408 elf32-score.c:2733
+ #: elf32-score7.c:2541 elf32-spu.c:5045 elf32-tilepro.c:3670 elf32-v850.c:2285
+ #: elf32-xstormy16.c:940 elf64-mmix.c:1542 elfxx-mips.c:9995
+@@ -750,6 +752,7 @@
+ #: elf32-lm32.c:1172 elf32-m32c.c:565 elf32-m32r.c:3078 elf32-m68hc1x.c:1295
+ #: elf32-mep.c:547 elf32-metag.c:2004 elf32-microblaze.c:1572
+ #: elf32-moxie.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
++#: elf32-lldevcpu.c:294 elf32-msp430.c:1329 elf32-mt.c:403 elf32-nds32.c:4922
+ #: elf32-openrisc.c:416 elf32-score.c:2746 elf32-score7.c:2549
+ #: elf32-spu.c:5053 elf32-tilepro.c:3678 elf32-v850.c:2305
+ #: elf32-xstormy16.c:948 elf64-mmix.c:1550 elfxx-tilegx.c:4063
+@@ -1366,6 +1369,7 @@
+ #: elf32-fr30.c:597 elf32-frv.c:4047 elf32-i860.c:1220 elf32-ip2k.c:1479
+ #: elf32-iq2000.c:696 elf32-m32c.c:561 elf32-mep.c:543 elf32-metag.c:2000
+ #: elf32-moxie.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
++#: elf32-lldevcpu.c:290 elf32-msp430.c:1325 elf32-mt.c:399 elf32-openrisc.c:412
+ #: elf32-tilepro.c:3674 elf32-v850.c:2289 elf32-xstormy16.c:944
+ #: elf64-mmix.c:1546 elfxx-tilegx.c:4059
+ msgid "internal error: dangerous relocation"
+diff -ruN binutils-2.34/bfd/reloc.c binutils-2.34-lldevcpu/bfd/reloc.c
+--- binutils-2.34/bfd/reloc.c	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/reloc.c	2020-06-28 11:12:38.000000000 +0300
+@@ -2376,6 +2376,12 @@
+ COMMENT
+ 
+ ENUM
++  BFD_RELOC_LLDEVCPU_10_PCREL
++ENUMDOC
++  Lldevcpu ELF relocations.
++COMMENT
++
++ENUM
+   BFD_RELOC_FT32_10
+ ENUMX
+   BFD_RELOC_FT32_20
+diff -ruN binutils-2.34/bfd/targets.c binutils-2.34-lldevcpu/bfd/targets.c
+--- binutils-2.34/bfd/targets.c	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/bfd/targets.c	2020-06-28 11:13:22.000000000 +0300
+@@ -808,6 +808,8 @@
+ extern const bfd_target mn10300_elf32_vec;
+ extern const bfd_target moxie_elf32_be_vec;
+ extern const bfd_target moxie_elf32_le_vec;
++extern const bfd_target lldevcpu_elf32_be_vec;
++extern const bfd_target lldevcpu_elf32_le_vec;
+ extern const bfd_target msp430_elf32_vec;
+ extern const bfd_target msp430_elf32_ti_vec;
+ extern const bfd_target mt_elf32_vec;
+@@ -1189,6 +1191,9 @@
+ 	&moxie_elf32_be_vec,
+ 	&moxie_elf32_le_vec,
+ 
++	&lldevcpu_elf32_be_vec,
++	&lldevcpu_elf32_le_vec,
++
+ 	&msp430_elf32_vec,
+ 	&msp430_elf32_ti_vec,
+ 
+diff -ruN binutils-2.34/binutils/MAINTAINERS binutils-2.34-lldevcpu/binutils/MAINTAINERS
+--- binutils-2.34/binutils/MAINTAINERS	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/binutils/MAINTAINERS	2020-06-28 11:19:08.000000000 +0300
+@@ -112,6 +112,7 @@
+   MMIX		   Hans-Peter Nilsson <hp@bitrange.com>
+   MN10300	   Alexandre Oliva <aoliva@redhat.com>
+   Moxie		   Anthony Green <green@moxielogic.com>
++  Lldevcpu	 lldevlab <lldevlab@gmail.com>
+   MSP430	   Dmitry Diky <diwil@spec.ru>
+   NDS32		   Kuan-Lin Chen <kuanlinchentw@gmail.com>
+   NDS32		   Wei-Cheng Wang <cole945@gmail.com>
+diff -ruN binutils-2.34/binutils/readelf.c binutils-2.34-lldevcpu/binutils/readelf.c
+--- binutils-2.34/binutils/readelf.c	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/binutils/readelf.c	2020-06-28 11:21:26.000000000 +0300
+@@ -132,6 +132,7 @@
+ #include "elf/mn10200.h"
+ #include "elf/mn10300.h"
+ #include "elf/moxie.h"
++#include "elf/lldevcpu.h"
+ #include "elf/mt.h"
+ #include "elf/msp430.h"
+ #include "elf/nds32.h"
+@@ -828,6 +829,7 @@
+     case EM_MN10300:
+     case EM_CYGNUS_MN10300:
+     case EM_MOXIE:
++	case EM_LLDEVCPU:
+     case EM_MSP430:
+     case EM_MSP430_OLD:
+     case EM_MT:
+@@ -1373,6 +1375,10 @@
+ 	  rtype = elf_moxie_reloc_type (type);
+ 	  break;
+ 
++	case EM_LLDEVCPU:
++	  rtype = elf_lldevcpu_reloc_type (type);
++	  break;
++
+ 	case EM_MSP430:
+ 	  if (uses_msp430x_relocs (filedata))
+ 	    {
+@@ -2516,6 +2522,7 @@
+     case EM_VISIUM:		return "CDS VISIUMcore processor";
+     case EM_FT32:               return "FTDI Chip FT32";
+     case EM_MOXIE:              return "Moxie";
++	case EM_LLDEVCPU:              return "Lldevcpu";
+     case EM_AMDGPU: 	 	return "AMD GPU";
+     case EM_RISCV: 	 	return "RISC-V";
+     case EM_LANAI:		return "Lanai 32-bit processor";
+@@ -12663,6 +12670,8 @@
+       return reloc_type == 1; /* R_MN10300_32.  */
+     case EM_MOXIE:
+       return reloc_type == 1; /* R_MOXIE_32.  */
++	case EM_LLDEVCPU:
++      return reloc_type == 1; /* R_LLDEVCPU_32.  */
+     case EM_MSP430_OLD:
+     case EM_MSP430:
+       return reloc_type == 1; /* R_MSP430_32 or R_MSP320_ABS32.  */
+@@ -13208,6 +13217,7 @@
+     case EM_MIPS:    /* R_MIPS_NONE.  */
+     case EM_MN10300: /* R_MN10300_NONE.  */
+     case EM_MOXIE:   /* R_MOXIE_NONE.  */
++	case EM_LLDEVCPU:   /* R_LLDEVCPU_NONE.  */
+     case EM_NIOS32:  /* R_NIOS_NONE.  */
+     case EM_OR1K:    /* R_OR1K_NONE. */
+     case EM_PARISC:  /* R_PARISC_NONE.  */
+diff -ruN binutils-2.34/binutils/testsuite/binutils-all/objdump.exp binutils-2.34-lldevcpu/binutils/testsuite/binutils-all/objdump.exp
+--- binutils-2.34/binutils/testsuite/binutils-all/objdump.exp	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/binutils/testsuite/binutils-all/objdump.exp	2020-06-28 11:21:56.000000000 +0300
+@@ -447,6 +447,7 @@
+      || [istarget "ia64*-*-*"]
+      || [istarget "mcore-*-*"]
+      || [istarget "moxie-*-*"]
++     || [istarget "lldevcpu-*-*"]
+ } then {
+     unsupported "objump decode line"
+ } else {
+diff -ruN binutils-2.34/config.sub binutils-2.34-lldevcpu/config.sub
+--- binutils-2.34/config.sub	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/config.sub	2020-06-28 10:02:24.000000000 +0300
+@@ -1182,6 +1182,7 @@
+ 			| ip2k | iq2000 \
+ 			| k1om \
+ 			| le32 | le64 \
++			| lldevcpu \
+ 			| lm32 \
+ 			| m32c | m32r | m32rle \
+ 			| m5200 | m68000 | m680[012346]0 | m68360 | m683?2 | m68k \
+diff -ruN binutils-2.34/configure binutils-2.34-lldevcpu/configure
+--- binutils-2.34/configure	2020-01-18 16:01:13.000000000 +0200
++++ binutils-2.34-lldevcpu/configure	2020-06-28 09:59:02.000000000 +0300
+@@ -3766,6 +3766,9 @@
+   moxie-*-*)
+     noconfigdirs="$noconfigdirs"
+     ;;
++  lldevcpu-*-*)
++    noconfigdirs="$noconfigdirs"
++    ;;
+   h8300*-*-*)
+     noconfigdirs="$noconfigdirs target-libgloss"
+     ;;
+diff -ruN binutils-2.34/configure.ac binutils-2.34-lldevcpu/configure.ac
+--- binutils-2.34/configure.ac	2020-02-01 14:02:56.000000000 +0200
++++ binutils-2.34-lldevcpu/configure.ac	2020-06-28 10:02:24.000000000 +0300
+@@ -1010,6 +1010,9 @@
+   moxie-*-*)
+     noconfigdirs="$noconfigdirs"
+     ;;
++  lldevcpu-*-*)
++    noconfigdirs="$noconfigdirs"
++    ;;
+   h8300*-*-*)
+     noconfigdirs="$noconfigdirs target-libgloss"
+     ;;
+diff -ruN binutils-2.34/gas/config/tc-lldevcpu.c binutils-2.34-lldevcpu/gas/config/tc-lldevcpu.c
+--- binutils-2.34/gas/config/tc-lldevcpu.c	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/gas/config/tc-lldevcpu.c	2020-06-28 11:29:50.000000000 +0300
+@@ -0,0 +1,851 @@
++/* tc-lldevcpu.c -- Assemble code for lldevcpu
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++
++   This file is part of GAS, the GNU Assembler.
++
++   GAS is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3, or (at your option)
++   any later version.
++
++   GAS is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with GAS; see the file COPYING.  If not, write to
++   the Free Software Foundation, 51 Franklin Street - Fifth Floor,
++   Boston, MA 02110-1301, USA.  */
++
++/* Contributed by lldevlab <lldevlab@gmail.com>.  */
++
++#include "as.h"
++#include "safe-ctype.h"
++#include "opcode/lldevcpu.h"
++#include "elf/lldevcpu.h"
++
++extern const lldevcpu_opc_info_t lldevcpu_opc_info[128];
++
++const char comment_chars[]        = "#";
++const char line_separator_chars[] = ";";
++const char line_comment_chars[]   = "#";
++
++static int pending_reloc;
++static struct hash_control *opcode_hash_control;
++
++const pseudo_typeS md_pseudo_table[] =
++{
++  {0, 0, 0}
++};
++
++const char FLT_CHARS[] = "rRsSfFdDxXpP";
++const char EXP_CHARS[] = "eE";
++
++static valueT md_chars_to_number (char * buf, int n);
++
++/* Byte order.  */
++extern int target_big_endian;
++
++void
++md_operand (expressionS *op __attribute__((unused)))
++{
++  /* Empty for now. */
++}
++
++/* This function is called once, at assembler startup time.  It sets
++   up the hash table with all the opcodes in it, and also initializes
++   some aliases for compatibility with other assemblers.  */
++
++void
++md_begin (void)
++{
++  int count;
++  const lldevcpu_opc_info_t *opcode;
++  opcode_hash_control = hash_new ();
++
++  /* Insert names into hash table.  */
++  for (count = 0, opcode = lldevcpu_form1_opc_info; count++ < 64; opcode++)
++    hash_insert (opcode_hash_control, opcode->name, (char *) opcode);
++
++  for (count = 0, opcode = lldevcpu_form2_opc_info; count++ < 4; opcode++)
++    hash_insert (opcode_hash_control, opcode->name, (char *) opcode);
++
++  for (count = 0, opcode = lldevcpu_form3_opc_info; count++ < 10; opcode++)
++    hash_insert (opcode_hash_control, opcode->name, (char *) opcode);
++
++  target_big_endian = TARGET_BYTES_BIG_ENDIAN;
++
++  bfd_set_arch_mach (stdoutput, TARGET_ARCH, 0);
++}
++
++/* Parse an expression and then restore the input line pointer.  */
++
++static char *
++parse_exp_save_ilp (char *s, expressionS *op)
++{
++  char *save = input_line_pointer;
++
++  input_line_pointer = s;
++  expression (op);
++  s = input_line_pointer;
++  input_line_pointer = save;
++  return s;
++}
++
++static int
++parse_register_operand (char **ptr)
++{
++  int reg;
++  char *s = *ptr;
++
++  if (*s != '$')
++    {
++      as_bad (_("expecting register"));
++      ignore_rest_of_line ();
++      return -1;
++    }
++  if (s[1] == 'f' && s[2] == 'p')
++    {
++      *ptr += 3;
++      return 0;
++    }
++  if (s[1] == 's' && s[2] == 'p')
++    {
++      *ptr += 3;
++      return 1;
++    }
++  if (s[1] == 'r')
++    {
++      reg = s[2] - '0';
++      if ((reg < 0) || (reg > 9))
++	{
++	  as_bad (_("illegal register number"));
++	  ignore_rest_of_line ();
++	  return -1;
++	}
++      if (reg == 1)
++	{
++	  int r2 = s[3] - '0';
++	  if ((r2 >= 0) && (r2 <= 3))
++	    {
++	      reg = 10 + r2;
++	      *ptr += 1;
++	    }
++	}
++    }
++  else
++    {
++      as_bad (_("illegal register number"));
++      ignore_rest_of_line ();
++      return -1;
++    }
++
++  *ptr += 3;
++
++  return reg + 2;
++}
++
++/* This is the guts of the machine-dependent assembler.  STR points to
++   a machine dependent instruction.  This function is supposed to emit
++   the frags/bytes it assembles to.  */
++
++void
++md_assemble (char *str)
++{
++  char *op_start;
++  char *op_end;
++
++  lldevcpu_opc_info_t *opcode;
++  char *p;
++  char pend;
++
++  unsigned short iword = 0;
++
++  int nlen = 0;
++
++  /* Drop leading whitespace.  */
++  while (*str == ' ')
++    str++;
++
++  /* Find the op code end.  */
++  op_start = str;
++  for (op_end = str;
++       *op_end && !is_end_of_line[*op_end & 0xff] && *op_end != ' ';
++       op_end++)
++    nlen++;
++
++  pend = *op_end;
++  *op_end = 0;
++
++  if (nlen == 0)
++    as_bad (_("can't find opcode "));
++  opcode = (lldevcpu_opc_info_t *) hash_find (opcode_hash_control, op_start);
++  *op_end = pend;
++
++  if (opcode == NULL)
++    {
++      as_bad (_("unknown opcode %s"), op_start);
++      return;
++    }
++
++  p = frag_more (2);
++
++  switch (opcode->itype)
++    {
++    case LLDEVCPU_F2_A8V:
++      iword = (1<<15) | (opcode->opcode << 12);
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	expressionS arg;
++	int reg;
++	reg = parse_register_operand (&op_end);
++	iword += (reg << 8);
++	if (*op_end != ',')
++	  as_warn (_("expecting comma delimited register operands"));
++	op_end++;
++	op_end = parse_exp_save_ilp (op_end, &arg);
++	fix_new_exp (frag_now,
++		     ((p + (target_big_endian ? 1 : 0)) - frag_now->fr_literal),
++		     1,
++		     &arg,
++		     0,
++		     BFD_RELOC_8);
++      }
++      break;
++    case LLDEVCPU_F1_AB:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	int dest, src;
++	dest = parse_register_operand (&op_end);
++	if (*op_end != ',')
++	  as_warn (_("expecting comma delimited register operands"));
++	op_end++;
++	src  = parse_register_operand (&op_end);
++	iword += (dest << 4) + src;
++	while (ISSPACE (*op_end))
++	  op_end++;
++	if (*op_end != 0)
++	  as_warn (_("extra stuff on line ignored"));
++      }
++      break;
++    case LLDEVCPU_F1_A4:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	expressionS arg;
++	char *where;
++	int regnum;
++
++ 	regnum = parse_register_operand (&op_end);
++	while (ISSPACE (*op_end))
++	  op_end++;
++
++	iword += (regnum << 4);
++
++	if (*op_end != ',')
++	  {
++	    as_bad (_("expecting comma delimited operands"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++
++	op_end = parse_exp_save_ilp (op_end, &arg);
++	where = frag_more (4);
++	fix_new_exp (frag_now,
++		     (where - frag_now->fr_literal),
++		     4,
++		     &arg,
++		     0,
++		     BFD_RELOC_32);
++      }
++      break;
++    case LLDEVCPU_F1_M:
++    case LLDEVCPU_F1_4:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	expressionS arg;
++	char *where;
++
++	op_end = parse_exp_save_ilp (op_end, &arg);
++	where = frag_more (4);
++	fix_new_exp (frag_now,
++		     (where - frag_now->fr_literal),
++		     4,
++		     &arg,
++		     0,
++		     BFD_RELOC_32);
++      }
++      break;
++    case LLDEVCPU_F1_NARG:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      if (*op_end != 0)
++	as_warn (_("extra stuff on line ignored"));
++      break;
++    case LLDEVCPU_F1_A:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	int reg;
++	reg = parse_register_operand (&op_end);
++	while (ISSPACE (*op_end))
++	  op_end++;
++	if (*op_end != 0)
++	  as_warn (_("extra stuff on line ignored"));
++	iword += (reg << 4);
++      }
++      break;
++    case LLDEVCPU_F1_ABi:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	int a, b;
++	a = parse_register_operand (&op_end);
++	if (*op_end != ',')
++	  as_warn (_("expecting comma delimited register operands"));
++	op_end++;
++	if (*op_end != '(')
++	  {
++	    as_bad (_("expecting indirect register `($rA)'"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++	b = parse_register_operand (&op_end);
++	if (*op_end != ')')
++	  {
++	    as_bad (_("missing closing parenthesis"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++	iword += (a << 4) + b;
++	while (ISSPACE (*op_end))
++	  op_end++;
++	if (*op_end != 0)
++	  as_warn (_("extra stuff on line ignored"));
++      }
++      break;
++    case LLDEVCPU_F1_AiB:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	int a, b;
++	if (*op_end != '(')
++	  {
++	    as_bad (_("expecting indirect register `($rA)'"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++	a = parse_register_operand (&op_end);
++	if (*op_end != ')')
++	  {
++	    as_bad (_("missing closing parenthesis"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++	if (*op_end != ',')
++	  as_warn (_("expecting comma delimited register operands"));
++	op_end++;
++	b = parse_register_operand (&op_end);
++	iword += (a << 4) + b;
++	while (ISSPACE (*op_end))
++	  op_end++;
++	if (*op_end != 0)
++	  as_warn (_("extra stuff on line ignored"));
++      }
++      break;
++    case LLDEVCPU_F1_4A:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	expressionS arg;
++	char *where;
++	int a;
++
++	op_end = parse_exp_save_ilp (op_end, &arg);
++	where = frag_more (4);
++	fix_new_exp (frag_now,
++		     (where - frag_now->fr_literal),
++		     4,
++		     &arg,
++		     0,
++		     BFD_RELOC_32);
++
++	if (*op_end != ',')
++	  {
++	    as_bad (_("expecting comma delimited operands"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++
++ 	a = parse_register_operand (&op_end);
++	while (ISSPACE (*op_end))
++	  op_end++;
++	if (*op_end != 0)
++	  as_warn (_("extra stuff on line ignored"));
++
++	iword += (a << 4);
++      }
++      break;
++    case LLDEVCPU_F1_ABi2:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	expressionS arg;
++	char *offset;
++	int a, b;
++
++ 	a = parse_register_operand (&op_end);
++	while (ISSPACE (*op_end))
++	  op_end++;
++
++	if (*op_end != ',')
++	  {
++	    as_bad (_("expecting comma delimited operands"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++
++	op_end = parse_exp_save_ilp (op_end, &arg);
++	offset = frag_more (2);
++	fix_new_exp (frag_now,
++		     (offset - frag_now->fr_literal),
++		     2,
++		     &arg,
++		     0,
++		     BFD_RELOC_16);
++
++	if (*op_end != '(')
++	  {
++	    as_bad (_("expecting indirect register `($rX)'"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++	b = parse_register_operand (&op_end);
++	if (*op_end != ')')
++	  {
++	    as_bad (_("missing closing parenthesis"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++
++	while (ISSPACE (*op_end))
++	  op_end++;
++	if (*op_end != 0)
++	  as_warn (_("extra stuff on line ignored"));
++
++	iword += (a << 4) + b;
++      }
++      break;
++    case LLDEVCPU_F1_AiB2:
++      iword = opcode->opcode << 8;
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	expressionS arg;
++	char *offset;
++	int a, b;
++
++	op_end = parse_exp_save_ilp (op_end, &arg);
++	offset = frag_more (2);
++	fix_new_exp (frag_now,
++		     (offset - frag_now->fr_literal),
++		     2,
++		     &arg,
++		     0,
++		     BFD_RELOC_16);
++
++	if (*op_end != '(')
++	  {
++	    as_bad (_("expecting indirect register `($rX)'"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++	a = parse_register_operand (&op_end);
++	if (*op_end != ')')
++	  {
++	    as_bad (_("missing closing parenthesis"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++
++	if (*op_end != ',')
++	  {
++	    as_bad (_("expecting comma delimited operands"));
++	    ignore_rest_of_line ();
++	    return;
++	  }
++	op_end++;
++
++ 	b = parse_register_operand (&op_end);
++	while (ISSPACE (*op_end))
++	  op_end++;
++
++	while (ISSPACE (*op_end))
++	  op_end++;
++	if (*op_end != 0)
++	  as_warn (_("extra stuff on line ignored"));
++
++	iword += (a << 4) + b;
++      }
++      break;
++    case LLDEVCPU_F2_NARG:
++      iword = opcode->opcode << 12;
++      while (ISSPACE (*op_end))
++	op_end++;
++      if (*op_end != 0)
++	as_warn (_("extra stuff on line ignored"));
++      break;
++    case LLDEVCPU_F3_PCREL:
++      iword = (3<<14) | (opcode->opcode << 10);
++      while (ISSPACE (*op_end))
++	op_end++;
++      {
++	expressionS arg;
++
++	op_end = parse_exp_save_ilp (op_end, &arg);
++	fix_new_exp (frag_now,
++		     (p - frag_now->fr_literal),
++		     2,
++		     &arg,
++		     TRUE,
++		     BFD_RELOC_LLDEVCPU_10_PCREL);
++      }
++      break;
++    case LLDEVCPU_BAD:
++      iword = 0;
++      while (ISSPACE (*op_end))
++	op_end++;
++      if (*op_end != 0)
++	as_warn (_("extra stuff on line ignored"));
++      break;
++    default:
++      abort ();
++    }
++
++  md_number_to_chars (p, iword, 2);
++  dwarf2_emit_insn (2);
++
++  while (ISSPACE (*op_end))
++    op_end++;
++
++  if (*op_end != 0)
++    as_warn (_("extra stuff on line ignored"));
++
++  if (pending_reloc)
++    as_bad (_("Something forgot to clean up\n"));
++}
++
++/* Turn a string in input_line_pointer into a floating point constant
++   of type type, and store the appropriate bytes in *LITP.  The number
++   of LITTLENUMS emitted is stored in *SIZEP .  An error message is
++   returned, or NULL on OK.  */
++
++const char *
++md_atof (int type, char *litP, int *sizeP)
++{
++  int prec;
++  LITTLENUM_TYPE words[4];
++  char *t;
++  int i;
++
++  switch (type)
++    {
++    case 'f':
++      prec = 2;
++      break;
++
++    case 'd':
++      prec = 4;
++      break;
++
++    default:
++      *sizeP = 0;
++      return _("bad call to md_atof");
++    }
++
++  t = atof_ieee (input_line_pointer, type, words);
++  if (t)
++    input_line_pointer = t;
++
++  *sizeP = prec * 2;
++
++  for (i = prec - 1; i >= 0; i--)
++    {
++      md_number_to_chars (litP, (valueT) words[i], 2);
++      litP += 2;
++    }
++
++  return NULL;
++}
++
++enum options
++{
++  OPTION_EB = OPTION_MD_BASE,
++  OPTION_EL,
++};
++
++struct option md_longopts[] =
++{
++  { "EB",          no_argument, NULL, OPTION_EB},
++  { "EL",          no_argument, NULL, OPTION_EL},
++  { NULL,          no_argument, NULL, 0}
++};
++
++size_t md_longopts_size = sizeof (md_longopts);
++
++const char *md_shortopts = "";
++
++int
++md_parse_option (int c ATTRIBUTE_UNUSED, const char *arg ATTRIBUTE_UNUSED)
++{
++  switch (c)
++    {
++    case OPTION_EB:
++      target_big_endian = 1;
++      break;
++    case OPTION_EL:
++      target_big_endian = 0;
++      break;
++    default:
++      return 0;
++    }
++
++  return 1;
++}
++
++void
++md_show_usage (FILE *stream ATTRIBUTE_UNUSED)
++{
++  fprintf (stream, _("\
++  -EB                     assemble for a big endian system (default)\n\
++  -EL                     assemble for a little endian system\n"));
++}
++
++/* Apply a fixup to the object file.  */
++
++void
++md_apply_fix (fixS *fixP ATTRIBUTE_UNUSED,
++	      valueT * valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNUSED)
++{
++  char *buf = fixP->fx_where + fixP->fx_frag->fr_literal;
++  long val = *valP;
++  long newval;
++  long max, min;
++
++  max = min = 0;
++  switch (fixP->fx_r_type)
++    {
++    case BFD_RELOC_32:
++      if (target_big_endian)
++	{
++	  buf[0] = val >> 24;
++	  buf[1] = val >> 16;
++	  buf[2] = val >> 8;
++	  buf[3] = val >> 0;
++	}
++      else
++	{
++	  buf[3] = val >> 24;
++	  buf[2] = val >> 16;
++	  buf[1] = val >> 8;
++	  buf[0] = val >> 0;
++	}
++      buf += 4;
++      break;
++
++    case BFD_RELOC_16:
++      if (target_big_endian)
++	{
++	  buf[0] = val >> 8;
++	  buf[1] = val >> 0;
++	}
++      else
++	{
++	  buf[1] = val >> 8;
++	  buf[0] = val >> 0;
++	}
++      buf += 2;
++      break;
++
++    case BFD_RELOC_8:
++      *buf++ = val;
++      break;
++
++    case BFD_RELOC_LLDEVCPU_10_PCREL:
++      if (!val)
++	break;
++      if (val < -1024 || val > 1022)
++	as_bad_where (fixP->fx_file, fixP->fx_line,
++                      _("pcrel too far BFD_RELOC_LLDEVCPU_10"));
++      /* 11 bit offset even numbered, so we remove right bit.  */
++      val >>= 1;
++      newval = md_chars_to_number (buf, 2);
++      newval |= val & 0x03ff;
++      md_number_to_chars (buf, newval, 2);
++      break;
++
++    default:
++      abort ();
++    }
++
++  if (max != 0 && (val < min || val > max))
++    as_bad_where (fixP->fx_file, fixP->fx_line, _("offset out of range"));
++
++  if (fixP->fx_addsy == NULL && fixP->fx_pcrel == 0)
++    fixP->fx_done = 1;
++}
++
++/* Put number into target byte order.  */
++
++void
++md_number_to_chars (char * ptr, valueT use, int nbytes)
++{
++  if (target_big_endian)
++    number_to_chars_bigendian (ptr, use, nbytes);
++  else
++    number_to_chars_littleendian (ptr, use, nbytes);
++}
++
++/* Convert from target byte order to host byte order.  */
++
++static valueT
++md_chars_to_number (char * buf, int n)
++{
++  valueT result = 0;
++  unsigned char * where = (unsigned char *) buf;
++
++  if (target_big_endian)
++    {
++      while (n--)
++	{
++	  result <<= 8;
++	  result |= (*where++ & 255);
++	}
++    }
++  else
++    {
++      while (n--)
++	{
++	  result <<= 8;
++	  result |= (where[n] & 255);
++	}
++    }
++
++  return result;
++}
++
++/* Generate a machine-dependent relocation.  */
++arelent *
++tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixP)
++{
++  arelent *relP;
++  bfd_reloc_code_real_type code;
++
++  switch (fixP->fx_r_type)
++    {
++    case BFD_RELOC_32:
++      code = fixP->fx_r_type;
++      break;
++    case BFD_RELOC_LLDEVCPU_10_PCREL:
++      code = fixP->fx_r_type;
++      break;
++    default:
++      as_bad_where (fixP->fx_file, fixP->fx_line,
++		    _("Semantics error.  This type of operand can not be relocated, it must be an assembly-time constant"));
++      return 0;
++    }
++
++  relP = XNEW (arelent);
++  relP->sym_ptr_ptr = XNEW (asymbol *);
++  *relP->sym_ptr_ptr = symbol_get_bfdsym (fixP->fx_addsy);
++  relP->address = fixP->fx_frag->fr_address + fixP->fx_where;
++
++  relP->addend = fixP->fx_offset;
++
++  /* This is the standard place for KLUDGEs to work around bugs in
++     bfd_install_relocation (first such note in the documentation
++     appears with binutils-2.8).
++
++     That function bfd_install_relocation does the wrong thing with
++     putting stuff into the addend of a reloc (it should stay out) for a
++     weak symbol.  The really bad thing is that it adds the
++     "segment-relative offset" of the symbol into the reloc.  In this
++     case, the reloc should instead be relative to the symbol with no
++     other offset than the assembly code shows; and since the symbol is
++     weak, any local definition should be ignored until link time (or
++     thereafter).
++     To wit:  weaksym+42  should be weaksym+42 in the reloc,
++     not weaksym+(offset_from_segment_of_local_weaksym_definition)
++
++     To "work around" this, we subtract the segment-relative offset of
++     "known" weak symbols.  This evens out the extra offset.
++
++     That happens for a.out but not for ELF, since for ELF,
++     bfd_install_relocation uses the "special function" field of the
++     howto, and does not execute the code that needs to be undone.  */
++
++  if (OUTPUT_FLAVOR == bfd_target_aout_flavour
++      && fixP->fx_addsy && S_IS_WEAK (fixP->fx_addsy)
++      && ! bfd_is_und_section (S_GET_SEGMENT (fixP->fx_addsy)))
++    {
++      relP->addend -= S_GET_VALUE (fixP->fx_addsy);
++    }
++
++  relP->howto = bfd_reloc_type_lookup (stdoutput, code);
++  if (! relP->howto)
++    {
++      const char *name;
++
++      name = S_GET_NAME (fixP->fx_addsy);
++      if (name == NULL)
++	name = _("<unknown>");
++      as_fatal (_("Cannot generate relocation type for symbol %s, code %s"),
++		name, bfd_get_reloc_code_name (code));
++    }
++
++  return relP;
++}
++
++/* Decide from what point a pc-relative relocation is relative to,
++   relative to the pc-relative fixup.  Er, relatively speaking.  */
++long
++md_pcrel_from (fixS *fixP)
++{
++  valueT addr = fixP->fx_where + fixP->fx_frag->fr_address;
++
++  switch (fixP->fx_r_type)
++    {
++    case BFD_RELOC_32:
++      return addr + 4;
++    case BFD_RELOC_LLDEVCPU_10_PCREL:
++      /* Offset is from the end of the instruction.  */
++      return addr + 2;
++    default:
++      abort ();
++      return addr;
++    }
++}
+diff -ruN binutils-2.34/gas/config/tc-lldevcpu.h binutils-2.34-lldevcpu/gas/config/tc-lldevcpu.h
+--- binutils-2.34/gas/config/tc-lldevcpu.h	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/gas/config/tc-lldevcpu.h	2020-06-28 11:31:50.000000000 +0300
+@@ -0,0 +1,47 @@
++/* tc-lldevcpu.h -- Header file for tc-lldevcpu.c.
++
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++
++   This file is part of GAS, the GNU Assembler.
++
++   GAS is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3, or (at your option)
++   any later version.
++
++   GAS is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License along
++   with GAS; see the file COPYING.  If not, write to the Free Software
++   Foundation, 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
++
++#define TC_LLDEVCPU 1
++#ifndef TARGET_BYTES_BIG_ENDIAN
++#define TARGET_BYTES_BIG_ENDIAN 1
++#endif
++#define WORKING_DOT_WORD
++
++/* This macro is the BFD architecture to pass to `bfd_set_arch_mach'.  */
++#define TARGET_FORMAT (target_big_endian ? "elf32-biglldevcpu" : "elf32-littlelldevcpu")
++
++#define TARGET_ARCH bfd_arch_lldevcpu
++
++#define md_undefined_symbol(NAME)           0
++
++/* These macros must be defined, but is will be a fatal assembler
++   error if we ever hit them.  */
++#define md_estimate_size_before_relax(A, B) (as_fatal (_("estimate size\n")), 0)
++#define md_convert_frag(B, S, F)            as_fatal (_("convert_frag\n"))
++
++/* If you define this macro, it should return the offset between the
++   address of a PC relative fixup and the position from which the PC
++   relative adjustment should be made.  On many processors, the base
++   of a PC relative instruction is the next instruction, so this
++   macro would return the length of an instruction.  */
++#define MD_PCREL_FROM_SECTION(FIX, SEC) md_pcrel_from (FIX)
++extern long md_pcrel_from (struct fix *);
++
++#define md_section_align(SEGMENT, SIZE)     (SIZE)
+diff -ruN binutils-2.34/gas/configure.tgt binutils-2.34-lldevcpu/gas/configure.tgt
+--- binutils-2.34/gas/configure.tgt	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/gas/configure.tgt	2020-06-29 21:08:40.000000000 +0300
+@@ -326,6 +326,8 @@
+   moxie-*-uclinux)			fmt=elf em=linux ;;
+   moxie-*-moxiebox*)                    fmt=elf endian=little ;;
+   moxie-*-*)				fmt=elf ;;
++
++  lldevcpu-*-*)				fmt=elf ;;
+     
+   mt-*-elf)				fmt=elf bfd_gas=yes ;;
+ 
+diff -ruN binutils-2.34/gas/Makefile.am binutils-2.34-lldevcpu/gas/Makefile.am
+--- binutils-2.34/gas/Makefile.am	2020-01-18 15:55:47.000000000 +0200
++++ binutils-2.34-lldevcpu/gas/Makefile.am	2020-06-28 11:22:34.000000000 +0300
+@@ -167,6 +167,7 @@
+ 	config/tc-mn10200.c \
+ 	config/tc-mn10300.c \
+ 	config/tc-moxie.c \
++	config/tc-lldevcpu.c \
+ 	config/tc-msp430.c \
+ 	config/tc-mt.c \
+ 	config/tc-nds32.c \
+diff -ruN binutils-2.34/gas/Makefile.in binutils-2.34-lldevcpu/gas/Makefile.in
+--- binutils-2.34/gas/Makefile.in	2020-02-01 13:49:51.000000000 +0200
++++ binutils-2.34-lldevcpu/gas/Makefile.in	2020-06-28 11:23:12.000000000 +0300
+@@ -556,6 +556,7 @@
+ 	config/tc-mn10200.c \
+ 	config/tc-mn10300.c \
+ 	config/tc-moxie.c \
++	config/tc-lldevcpu.c \
+ 	config/tc-msp430.c \
+ 	config/tc-mt.c \
+ 	config/tc-nds32.c \
+@@ -964,6 +965,8 @@
+ 	config/$(DEPDIR)/$(am__dirstamp)
+ config/tc-moxie.$(OBJEXT): config/$(am__dirstamp) \
+ 	config/$(DEPDIR)/$(am__dirstamp)
++config/tc-lldevcpu.$(OBJEXT): config/$(am__dirstamp) \
++	config/$(DEPDIR)/$(am__dirstamp)
+ config/tc-msp430.$(OBJEXT): config/$(am__dirstamp) \
+ 	config/$(DEPDIR)/$(am__dirstamp)
+ config/tc-mt.$(OBJEXT): config/$(am__dirstamp) \
+@@ -1187,6 +1190,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-mn10200.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-mn10300.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-moxie.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-lldevcpu.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-msp430.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-mt.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-nds32.Po@am__quote@
+diff -ruN binutils-2.34/gas/po/POTFILES.in binutils-2.34-lldevcpu/gas/po/POTFILES.in
+--- binutils-2.34/gas/po/POTFILES.in	2020-02-01 13:49:54.000000000 +0200
++++ binutils-2.34-lldevcpu/gas/po/POTFILES.in	2020-06-28 11:33:32.000000000 +0300
+@@ -111,6 +111,7 @@
+ config/tc-mn10300.c
+ config/tc-mn10300.h
+ config/tc-moxie.c
++config/tc-lldevcpu.c
+ config/tc-msp430.c
+ config/tc-msp430.h
+ config/tc-mt.c
+diff -ruN binutils-2.34/include/elf/common.h binutils-2.34-lldevcpu/include/elf/common.h
+--- binutils-2.34/include/elf/common.h	2020-01-18 15:55:48.000000000 +0200
++++ binutils-2.34-lldevcpu/include/elf/common.h	2020-06-29 21:10:48.000000000 +0300
+@@ -336,6 +336,7 @@
+ #define EM_FT32         222     /* FTDI Chip FT32 high performance 32-bit RISC architecture */
+ #define EM_MOXIE        223     /* Moxie processor family */
+ #define EM_AMDGPU 	224 	/* AMD GPU architecture */
++#define EM_LLDEVCPU        225     /* Lldevcpu processor family */
+ #define EM_RISCV 	243 	/* RISC-V */
+ #define EM_LANAI	244	/* Lanai 32-bit processor.  */
+ #define EM_BPF		247	/* Linux BPF – in-kernel virtual machine.  */
+@@ -429,6 +430,9 @@
+ /* Old, unofficial value for Moxie.  */
+ #define EM_MOXIE_OLD            0xFEED
+ 
++/* Old, unofficial value for Lldevcpu.  */
++#define EM_LLDEVCPU_OLD            0xFEEE
++
+ #define EM_MICROBLAZE_OLD	0xbaab	/* Old MicroBlaze */
+ 
+ #define EM_ADAPTEVA_EPIPHANY	0x1223  /* Adapteva's Epiphany architecture.  */
+diff -ruN binutils-2.34/include/elf/lldevcpu.h binutils-2.34-lldevcpu/include/elf/lldevcpu.h
+--- binutils-2.34/include/elf/lldevcpu.h	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/include/elf/lldevcpu.h	2020-06-28 11:36:30.000000000 +0300
+@@ -0,0 +1,32 @@
++/* lldevcpu ELF support for BFD.
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++
++   This file is part of BFD, the Binary File Descriptor library.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software Foundation,
++   Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
++
++#ifndef _ELF_LLDEVCPU_H
++#define _ELF_LLDEVCPU_H
++
++#include "elf/reloc-macros.h"
++
++/* Relocation types.  */
++START_RELOC_NUMBERS (elf_lldevcpu_reloc_type)
++  RELOC_NUMBER (R_LLDEVCPU_NONE, 0)
++  RELOC_NUMBER (R_LLDEVCPU_32, 1)
++  RELOC_NUMBER (R_LLDEVCPU_PCREL10, 2)
++END_RELOC_NUMBERS (R_LLDEVCPU_max)
++
++#endif /* _ELF_LLDEVCPU_H */
+diff -ruN binutils-2.34/include/opcode/lldevcpu.h binutils-2.34-lldevcpu/include/opcode/lldevcpu.h
+--- binutils-2.34/include/opcode/lldevcpu.h	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/include/opcode/lldevcpu.h	2020-06-28 11:41:46.000000000 +0300
+@@ -0,0 +1,74 @@
++/* Definitions for decoding the lldevcpu opcode table.
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++   Contributed by lldevlab (lldevlab@gmail.com).
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA
++   02110-1301, USA.  */
++
++/* Form 1 instructions come in different flavors:
++
++    Some have no arguments                          (LLDEVCPU_F1_NARG)
++    Some only use the A operand                     (LLDEVCPU_F1_A)
++    Some use A and B registers                      (LLDEVCPU_F1_AB)
++    Some use A and consume a 4 byte immediate value (LLDEVCPU_F1_A4)
++    Some use just a 4 byte immediate value          (LLDEVCPU_F1_4)
++    Some use just a 4 byte memory address           (LLDEVCPU_F1_M)
++    Some use B and an indirect A                    (LLDEVCPU_F1_AiB)
++    Some use A and an indirect B                    (LLDEVCPU_F1_ABi)
++    Some consume a 4 byte immediate value and use X (LLDEVCPU_F1_4A)
++    Some use B and an indirect A plus 2 byte offset (LLDEVCPU_F1_AiB2)
++    Some use A and an indirect B plus 2 byte offset (LLDEVCPU_F1_ABi2)
++
++  Form 2 instructions also come in different flavors:
++
++    Some have no arguments                          (LLDEVCPU_F2_NARG)
++    Some use the A register and an 8-bit value      (LLDEVCPU_F2_A8V)
++
++  Form 3 instructions also come in different flavors:
++
++    Some have no arguments                          (LLDEVCPU_F3_NARG)
++    Some have a 10-bit PC relative operand          (LLDEVCPU_F3_PCREL).  */
++
++#define LLDEVCPU_F1_NARG 0x100
++#define LLDEVCPU_F1_A    0x101
++#define LLDEVCPU_F1_AB   0x102
++/* #define LLDEVCPU_F1_ABC  0x103 */
++#define LLDEVCPU_F1_A4   0x104
++#define LLDEVCPU_F1_4    0x105
++#define LLDEVCPU_F1_AiB  0x106
++#define LLDEVCPU_F1_ABi  0x107
++#define LLDEVCPU_F1_4A   0x108
++#define LLDEVCPU_F1_AiB2 0x109
++#define LLDEVCPU_F1_ABi2 0x10a
++#define LLDEVCPU_F1_M    0x10b
++
++#define LLDEVCPU_F2_NARG 0x200
++#define LLDEVCPU_F2_A8V  0x201
++
++#define LLDEVCPU_F3_NARG  0x300
++#define LLDEVCPU_F3_PCREL 0x301
++
++#define LLDEVCPU_BAD     0x400
++
++typedef struct lldevcpu_opc_info_t
++{
++  short         opcode;
++  unsigned      itype;
++  const char *  name;
++} lldevcpu_opc_info_t;
++
++extern const lldevcpu_opc_info_t lldevcpu_form1_opc_info[128];
++extern const lldevcpu_opc_info_t lldevcpu_form2_opc_info[4];
++extern const lldevcpu_opc_info_t lldevcpu_form3_opc_info[16];
+diff -ruN binutils-2.34/ld/configure.tgt binutils-2.34-lldevcpu/ld/configure.tgt
+--- binutils-2.34/ld/configure.tgt	2020-01-18 15:55:48.000000000 +0200
++++ binutils-2.34-lldevcpu/ld/configure.tgt	2020-06-28 11:42:36.000000000 +0300
+@@ -592,6 +592,8 @@
+ 			;;
+ moxie-*-*)		targ_emul=elf32moxie
+ 			;;
++lldevcpu-*-*)		targ_emul=elf32lldevcpu
++			;;
+ msp430-*-*)		targ_emul=msp430elf
+ 			targ_extra_emuls="msp430X"
+ 			targ_extra_ofiles=ldelfgen.o
+diff -ruN binutils-2.34/ld/emulparams/elf32lldevcpu.sh binutils-2.34-lldevcpu/ld/emulparams/elf32lldevcpu.sh
+--- binutils-2.34/ld/emulparams/elf32lldevcpu.sh	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/ld/emulparams/elf32lldevcpu.sh	2020-06-28 11:45:44.000000000 +0300
+@@ -0,0 +1,10 @@
++SCRIPT_NAME=elf
++TEMPLATE_NAME=elf
++OUTPUT_FORMAT="elf32-biglldevcpu"
++BIG_OUTPUT_FORMAT="elf32-biglldevcpu"
++LITTLE_OUTPUT_FORMAT="elf32-littlelldevcpu"
++TEXT_START_ADDR=0x1000
++MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
++ARCH=lldevcpu
++EMBEDDED=yes
++STACK_ADDR=0x400000
+diff -ruN binutils-2.34/ld/Makefile.am binutils-2.34-lldevcpu/ld/Makefile.am
+--- binutils-2.34/ld/Makefile.am	2020-01-30 09:15:56.000000000 +0200
++++ binutils-2.34-lldevcpu/ld/Makefile.am	2020-06-28 11:43:20.000000000 +0300
+@@ -262,6 +262,7 @@
+ 	eelf32microblaze.c \
+ 	eelf32moxie.c \
+ 	emoxiebox.c \
++	eelf32lldevcpu.c \
+ 	eelf32mt.c \
+ 	eelf32or1k.c \
+ 	eelf32or1k_linux.c \
+@@ -750,6 +751,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32microblaze.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32moxie.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emoxiebox.Pc@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32lldevcpu.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32mt.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32or1k.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32or1k_linux.Pc@am__quote@
+diff -ruN binutils-2.34/ld/Makefile.in binutils-2.34-lldevcpu/ld/Makefile.in
+--- binutils-2.34/ld/Makefile.in	2020-02-01 13:50:25.000000000 +0200
++++ binutils-2.34-lldevcpu/ld/Makefile.in	2020-06-28 11:44:08.000000000 +0300
+@@ -752,6 +752,7 @@
+ 	eelf32microblaze.c \
+ 	eelf32moxie.c \
+ 	emoxiebox.c \
++	eelf32lldevcpu.c \
+ 	eelf32mt.c \
+ 	eelf32or1k.c \
+ 	eelf32or1k_linux.c \
+@@ -1333,6 +1334,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32microblazeel.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32mipswindiss.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32moxie.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32lldevcpu.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32mt.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32or1k.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32or1k_linux.Po@am__quote@
+@@ -2354,6 +2356,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32microblaze.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32moxie.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emoxiebox.Pc@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32lldevcpu.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32mt.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32or1k.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32or1k_linux.Pc@am__quote@
+diff -ruN binutils-2.34/ld/po/BLD-POTFILES.in binutils-2.34-lldevcpu/ld/po/BLD-POTFILES.in
+--- binutils-2.34/ld/po/BLD-POTFILES.in	2020-02-01 13:52:13.000000000 +0200
++++ binutils-2.34-lldevcpu/ld/po/BLD-POTFILES.in	2020-06-28 11:46:24.000000000 +0300
+@@ -137,6 +137,7 @@
+ eelf32microblazeel.c
+ eelf32mipswindiss.c
+ eelf32moxie.c
++eelf32lldevcpu.c
+ eelf32mt.c
+ eelf32or1k.c
+ eelf32or1k_linux.c
+diff -ruN binutils-2.34/ld/testsuite/ld-elf/sec-to-seg.exp binutils-2.34-lldevcpu/ld/testsuite/ld-elf/sec-to-seg.exp
+--- binutils-2.34/ld/testsuite/ld-elf/sec-to-seg.exp	2020-01-18 15:55:48.000000000 +0200
++++ binutils-2.34-lldevcpu/ld/testsuite/ld-elf/sec-to-seg.exp	2020-06-28 11:47:12.000000000 +0300
+@@ -83,6 +83,7 @@
+      || [istarget ip2k-*-*]
+      || [istarget m32r-*-*]
+      || [istarget moxie-*-*]
++     || [istarget lldevcpu-*-*]
+      || [istarget msp430-*-*]
+      || [istarget mt-*-*]
+      || [istarget pru-*-*]
+diff -ruN binutils-2.34/opcodes/configure binutils-2.34-lldevcpu/opcodes/configure
+--- binutils-2.34/opcodes/configure	2020-02-01 13:49:42.000000000 +0200
++++ binutils-2.34-lldevcpu/opcodes/configure	2020-06-28 11:47:48.000000000 +0300
+@@ -12881,6 +12881,7 @@
+ 	bfd_frv_arch)		ta="$ta frv-asm.lo frv-desc.lo frv-dis.lo frv-ibld.lo frv-opc.lo" using_cgen=yes ;;
+ 	bfd_ft32_arch)		ta="$ta ft32-opc.lo ft32-dis.lo" ;;
+ 	bfd_moxie_arch)		ta="$ta moxie-dis.lo moxie-opc.lo" ;;
++  bfd_lldevcpu_arch)		ta="$ta lldevcpu-dis.lo lldevcpu-opc.lo" ;;
+ 	bfd_h8300_arch)		ta="$ta h8300-dis.lo" ;;
+ 	bfd_hppa_arch)		ta="$ta hppa-dis.lo" ;;
+ 	bfd_i386_arch|bfd_iamcu_arch|bfd_l1om_arch|bfd_k1om_arch)
+diff -ruN binutils-2.34/opcodes/configure.ac binutils-2.34-lldevcpu/opcodes/configure.ac
+--- binutils-2.34/opcodes/configure.ac	2020-01-18 15:55:49.000000000 +0200
++++ binutils-2.34-lldevcpu/opcodes/configure.ac	2020-06-28 11:48:22.000000000 +0300
+@@ -272,6 +272,7 @@
+ 	bfd_frv_arch)		ta="$ta frv-asm.lo frv-desc.lo frv-dis.lo frv-ibld.lo frv-opc.lo" using_cgen=yes ;;
+ 	bfd_ft32_arch)		ta="$ta ft32-opc.lo ft32-dis.lo" ;;
+ 	bfd_moxie_arch)		ta="$ta moxie-dis.lo moxie-opc.lo" ;;
++	bfd_lldevcpu_arch)		ta="$ta lldevcpu-dis.lo lldevcpu-opc.lo" ;;
+ 	bfd_h8300_arch)		ta="$ta h8300-dis.lo" ;;
+ 	bfd_hppa_arch)		ta="$ta hppa-dis.lo" ;;
+ 	bfd_i386_arch|bfd_iamcu_arch|bfd_l1om_arch|bfd_k1om_arch)
+diff -ruN binutils-2.34/opcodes/disassemble.c binutils-2.34-lldevcpu/opcodes/disassemble.c
+--- binutils-2.34/opcodes/disassemble.c	2020-01-18 15:55:49.000000000 +0200
++++ binutils-2.34-lldevcpu/opcodes/disassemble.c	2020-06-28 11:49:04.000000000 +0300
+@@ -63,6 +63,7 @@
+ #define ARCH_mn10200
+ #define ARCH_mn10300
+ #define ARCH_moxie
++#define ARCH_lldevcpu
+ #define ARCH_mt
+ #define ARCH_msp430
+ #define ARCH_nds32
+@@ -532,6 +533,11 @@
+       disassemble = print_insn_moxie;
+       break;
+ #endif
++#ifdef ARCH_lldevcpu
++    case bfd_arch_lldevcpu:
++      disassemble = print_insn_lldevcpu;
++      break;
++#endif
+ #ifdef ARCH_iq2000
+     case bfd_arch_iq2000:
+       disassemble = print_insn_iq2000;
+diff -ruN binutils-2.34/opcodes/disassemble.h binutils-2.34-lldevcpu/opcodes/disassemble.h
+--- binutils-2.34/opcodes/disassemble.h	2020-01-18 15:55:49.000000000 +0200
++++ binutils-2.34-lldevcpu/opcodes/disassemble.h	2020-06-28 11:49:22.000000000 +0300
+@@ -72,6 +72,7 @@
+ extern int print_insn_mn10200		(bfd_vma, disassemble_info *);
+ extern int print_insn_mn10300		(bfd_vma, disassemble_info *);
+ extern int print_insn_moxie		(bfd_vma, disassemble_info *);
++extern int print_insn_lldevcpu		(bfd_vma, disassemble_info *);
+ extern int print_insn_msp430		(bfd_vma, disassemble_info *);
+ extern int print_insn_mt                (bfd_vma, disassemble_info *);
+ extern int print_insn_nds32		(bfd_vma, disassemble_info *);
+diff -ruN binutils-2.34/opcodes/lldevcpu-dis.c binutils-2.34-lldevcpu/opcodes/lldevcpu-dis.c
+--- binutils-2.34/opcodes/lldevcpu-dis.c	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/opcodes/lldevcpu-dis.c	2020-06-28 11:54:46.000000000 +0300
+@@ -0,0 +1,228 @@
++/* Disassemble lldevcpu instructions.
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++
++   This file is part of the GNU opcodes library.
++
++   This library is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3, or (at your option)
++   any later version.
++
++   It is distributed in the hope that it will be useful, but WITHOUT
++   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
++   License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
++   MA 02110-1301, USA.  */
++
++#include "sysdep.h"
++#include <stdio.h>
++
++#define STATIC_TABLE
++#define DEFINE_TABLE
++
++#include "opcode/lldevcpu.h"
++#include "disassemble.h"
++
++static fprintf_ftype fpr;
++static void *stream;
++
++/* Macros to extract operands from the instruction word.  */
++#define OP_A(i) ((i >> 4) & 0xf)
++#define OP_B(i) (i & 0xf)
++#define INST2OFFSET(o) (((((o) & 0x3ff) ^ 0x200) - 0x200) * 2)
++
++static const char * reg_names[16] =
++  { "$fp", "$sp", "$r0", "$r1", "$r2", "$r3", "$r4", "$r5",
++    "$r6", "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13" };
++
++int
++print_insn_lldevcpu (bfd_vma addr, struct disassemble_info * info)
++{
++  int length = 2;
++  int status;
++  stream = info->stream;
++  const lldevcpu_opc_info_t * opcode;
++  bfd_byte buffer[4];
++  unsigned short iword;
++  fpr = info->fprintf_func;
++
++  if ((status = info->read_memory_func (addr, buffer, 2, info)))
++    goto fail;
++
++  if (info->endian == BFD_ENDIAN_BIG)
++    iword = bfd_getb16 (buffer);
++  else
++    iword = bfd_getl16 (buffer);
++
++  /* Form 1 instructions have the high bit set to 0.  */
++  if ((iword & (1<<15)) == 0)
++    {
++      /* Extract the Form 1 opcode.  */
++      opcode = &lldevcpu_form1_opc_info[iword >> 8];
++      switch (opcode->itype)
++	{
++	case LLDEVCPU_F1_NARG:
++	  fpr (stream, "%s", opcode->name);
++	  break;
++	case LLDEVCPU_F1_A:
++	  fpr (stream, "%s\t%s", opcode->name,
++	       reg_names[OP_A(iword)]);
++	  break;
++	case LLDEVCPU_F1_AB:
++	  fpr (stream, "%s\t%s, %s", opcode->name,
++	       reg_names[OP_A(iword)],
++	       reg_names[OP_B(iword)]);
++	  break;
++	case LLDEVCPU_F1_A4:
++	  {
++	    unsigned imm;
++	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
++	      goto fail;
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
++	    fpr (stream, "%s\t%s, 0x%x", opcode->name,
++		 reg_names[OP_A(iword)], imm);
++	    length = 6;
++	  }
++	  break;
++	case LLDEVCPU_F1_4:
++	  {
++	    unsigned imm;
++	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
++	      goto fail;
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
++	    fpr (stream, "%s\t0x%x", opcode->name, imm);
++	    length = 6;
++	  }
++	  break;
++	case LLDEVCPU_F1_M:
++	  {
++	    unsigned imm;
++	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
++	      goto fail;
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
++	    fpr (stream, "%s\t", opcode->name);
++	    info->print_address_func ((bfd_vma) imm, info);
++	    length = 6;
++	  }
++	  break;
++	case LLDEVCPU_F1_AiB:
++	  fpr (stream, "%s\t(%s), %s", opcode->name,
++	       reg_names[OP_A(iword)], reg_names[OP_B(iword)]);
++	  break;
++	case LLDEVCPU_F1_ABi:
++	  fpr (stream, "%s\t%s, (%s)", opcode->name,
++	       reg_names[OP_A(iword)], reg_names[OP_B(iword)]);
++	  break;
++	case LLDEVCPU_F1_4A:
++	  {
++	    unsigned imm;
++	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
++	      goto fail;
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
++	    fpr (stream, "%s\t0x%x, %s",
++		 opcode->name, imm, reg_names[OP_A(iword)]);
++	    length = 6;
++	  }
++	  break;
++	case LLDEVCPU_F1_AiB2:
++	  {
++	    unsigned imm;
++	    if ((status = info->read_memory_func (addr+2, buffer, 2, info)))
++	      goto fail;
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb16 (buffer);
++	    else
++	      imm = bfd_getl16 (buffer);
++	    fpr (stream, "%s\t0x%x(%s), %s", opcode->name,
++		 imm,
++		 reg_names[OP_A(iword)],
++		 reg_names[OP_B(iword)]);
++	    length = 4;
++	  }
++	  break;
++	case LLDEVCPU_F1_ABi2:
++	  {
++	    unsigned imm;
++	    if ((status = info->read_memory_func (addr+2, buffer, 2, info)))
++	      goto fail;
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb16 (buffer);
++	    else
++	      imm = bfd_getl16 (buffer);
++	    fpr (stream, "%s\t%s, 0x%x(%s)",
++		 opcode->name,
++		 reg_names[OP_A(iword)],
++		 imm,
++		 reg_names[OP_B(iword)]);
++	    length = 4;
++	  }
++	  break;
++        case LLDEVCPU_BAD:
++	  fpr (stream, "bad");
++	  break;
++	default:
++	  abort();
++	}
++    }
++  else if ((iword & (1<<14)) == 0)
++    {
++      /* Extract the Form 2 opcode.  */
++      opcode = &lldevcpu_form2_opc_info[(iword >> 12) & 3];
++      switch (opcode->itype)
++	{
++	case LLDEVCPU_F2_A8V:
++	  fpr (stream, "%s\t%s, 0x%x",
++	       opcode->name,
++	       reg_names[(iword >> 8) & 0xf],
++	       iword & ((1 << 8) - 1));
++	  break;
++	case LLDEVCPU_F2_NARG:
++	  fpr (stream, "%s", opcode->name);
++	  break;
++        case LLDEVCPU_BAD:
++	  fpr (stream, "bad");
++	  break;
++	default:
++	  abort();
++	}
++    }
++  else
++    {
++      /* Extract the Form 3 opcode.  */
++      opcode = &lldevcpu_form3_opc_info[(iword >> 10) & 15];
++      switch (opcode->itype)
++	{
++	case LLDEVCPU_F3_PCREL:
++	  fpr (stream, "%s\t", opcode->name);
++	  info->print_address_func (addr + INST2OFFSET (iword) + 2, info);
++	  break;
++        case LLDEVCPU_BAD:
++	  fpr (stream, "bad");
++	  break;
++	default:
++	  abort();
++	}
++    }
++
++  return length;
++
++ fail:
++  info->memory_error_func (status, addr, info);
++  return -1;
++}
+diff -ruN binutils-2.34/opcodes/lldevcpu-opc.c binutils-2.34-lldevcpu/opcodes/lldevcpu-opc.c
+--- binutils-2.34/opcodes/lldevcpu-opc.c	1970-01-01 03:00:00.000000000 +0300
++++ binutils-2.34-lldevcpu/opcodes/lldevcpu-opc.c	2020-06-28 12:15:58.000000000 +0300
+@@ -0,0 +1,211 @@
++/* lldevcpu-opc.c -- Definitions for lldevcpu opcodes.
++   Copyright (C) 2009-2020 Free Software Foundation, Inc.
++   Contributed by lldevlab (lldevlab@gmail.com).
++
++   This file is part of the GNU opcodes library.
++
++   This library is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3, or (at your option)
++   any later version.
++
++   It is distributed in the hope that it will be useful, but WITHOUT
++   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++   or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
++   License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this file; see the file COPYING.  If not, write to the
++   Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
++   MA 02110-1301, USA.  */
++
++#include "sysdep.h"
++#include "opcode/lldevcpu.h"
++
++/* The lldevcpu processor's 16-bit instructions come in two forms:
++
++  FORM 1 instructions start with a 0 bit...
++
++    0oooooooaaaabbbb
++    0              F
++
++   ooooooo - form 1 opcode number
++   aaaa    - operand A
++   bbbb    - operand B
++
++  FORM 2 instructions start with bits "10"...
++
++    10ooaaaavvvvvvvv
++    0              F
++
++   oo       - form 2 opcode number
++   aaaa     - operand A
++   vvvvvvvv - 8-bit immediate value
++
++  FORM 3 instructions start with a bits "11"...
++
++    11oooovvvvvvvvvv
++    0              F
++
++   oooo         - form 3 opcode number
++   vvvvvvvvvv   - 10-bit immediate value.  */
++
++const lldevcpu_opc_info_t lldevcpu_form1_opc_info[128] =
++  {
++    { 0x00, LLDEVCPU_BAD,     "bad" },  // Reserved as bad.
++    { 0x01, LLDEVCPU_F1_A4,   "ldi.l" },
++    { 0x02, LLDEVCPU_F1_AB,   "mov" },
++    { 0x03, LLDEVCPU_F1_M,    "jsra" },
++    { 0x04, LLDEVCPU_F1_NARG, "ret" },
++    { 0x05, LLDEVCPU_F1_AB,   "add" },
++    { 0x06, LLDEVCPU_F1_AB,   "push" },
++    { 0x07, LLDEVCPU_F1_AB,   "pop" },
++    { 0x08, LLDEVCPU_F1_A4,   "lda.l" },
++    { 0x09, LLDEVCPU_F1_4A,   "sta.l" },
++    { 0x0a, LLDEVCPU_F1_ABi,  "ld.l" },
++    { 0x0b, LLDEVCPU_F1_AiB,  "st.l" },
++    { 0x0c, LLDEVCPU_F1_ABi2, "ldo.l" },
++    { 0x0d, LLDEVCPU_F1_AiB2, "sto.l" },
++    { 0x0e, LLDEVCPU_F1_AB,   "cmp" },
++    { 0x0f, LLDEVCPU_F1_NARG, "nop" },
++    { 0x10, LLDEVCPU_F1_AB,   "sex.b" },
++    { 0x11, LLDEVCPU_F1_AB,   "sex.s" },
++    { 0x12, LLDEVCPU_F1_AB,   "zex.b" },
++    { 0x13, LLDEVCPU_F1_AB,   "zex.s" },
++    { 0x14, LLDEVCPU_F1_AB,   "umul.x" },
++    { 0x15, LLDEVCPU_F1_AB,   "mul.x" },
++    { 0x16, LLDEVCPU_BAD,     "bad" },
++    { 0x17, LLDEVCPU_BAD,     "bad" },
++    { 0x18, LLDEVCPU_BAD,     "bad" },
++    { 0x19, LLDEVCPU_F1_A,    "jsr" },
++    { 0x1a, LLDEVCPU_F1_M,    "jmpa" },
++    { 0x1b, LLDEVCPU_F1_A4,   "ldi.b" },
++    { 0x1c, LLDEVCPU_F1_ABi,  "ld.b" },
++    { 0x1d, LLDEVCPU_F1_A4,   "lda.b" },
++    { 0x1e, LLDEVCPU_F1_AiB,  "st.b" },
++    { 0x1f, LLDEVCPU_F1_4A,   "sta.b" },
++    { 0x20, LLDEVCPU_F1_A4,   "ldi.s" },
++    { 0x21, LLDEVCPU_F1_ABi,  "ld.s" },
++    { 0x22, LLDEVCPU_F1_A4,   "lda.s" },
++    { 0x23, LLDEVCPU_F1_AiB,  "st.s" },
++    { 0x24, LLDEVCPU_F1_4A,   "sta.s" },
++    { 0x25, LLDEVCPU_F1_A,    "jmp" },
++    { 0x26, LLDEVCPU_F1_AB,   "and" },
++    { 0x27, LLDEVCPU_F1_AB,   "lshr" },
++    { 0x28, LLDEVCPU_F1_AB,   "ashl" },
++    { 0x29, LLDEVCPU_F1_AB,   "sub" },
++    { 0x2a, LLDEVCPU_F1_AB,   "neg" },
++    { 0x2b, LLDEVCPU_F1_AB,   "or" },
++    { 0x2c, LLDEVCPU_F1_AB,   "not" },
++    { 0x2d, LLDEVCPU_F1_AB,   "ashr" },
++    { 0x2e, LLDEVCPU_F1_AB,   "xor" },
++    { 0x2f, LLDEVCPU_F1_AB,   "mul" },
++    { 0x30, LLDEVCPU_F1_4,    "swi" },
++    { 0x31, LLDEVCPU_F1_AB,   "div" },
++    { 0x32, LLDEVCPU_F1_AB,   "udiv" },
++    { 0x33, LLDEVCPU_F1_AB,   "mod" },
++    { 0x34, LLDEVCPU_F1_AB,   "umod" },
++    { 0x35, LLDEVCPU_F1_NARG, "brk" },
++    { 0x36, LLDEVCPU_F1_ABi2, "ldo.b" },
++    { 0x37, LLDEVCPU_F1_AiB2, "sto.b" },
++    { 0x38, LLDEVCPU_F1_ABi2, "ldo.s" },
++    { 0x39, LLDEVCPU_F1_AiB2, "sto.s" },
++    { 0x3a, LLDEVCPU_BAD,     "bad" },
++    { 0x3b, LLDEVCPU_BAD,     "bad" },
++    { 0x3c, LLDEVCPU_BAD,     "bad" },
++    { 0x3d, LLDEVCPU_BAD,     "bad" },
++    { 0x3e, LLDEVCPU_BAD,     "bad" },
++    { 0x3f, LLDEVCPU_BAD,     "bad" },
++    { 0x40, LLDEVCPU_BAD,     "bad" },
++    { 0x41, LLDEVCPU_BAD,     "bad" },
++    { 0x42, LLDEVCPU_BAD,     "bad" },
++    { 0x43, LLDEVCPU_BAD,     "bad" },
++    { 0x44, LLDEVCPU_BAD,     "bad" },
++    { 0x45, LLDEVCPU_BAD,     "bad" },
++    { 0x46, LLDEVCPU_BAD,     "bad" },
++    { 0x47, LLDEVCPU_BAD,     "bad" },
++    { 0x48, LLDEVCPU_BAD,     "bad" },
++    { 0x49, LLDEVCPU_BAD,     "bad" },
++    { 0x4a, LLDEVCPU_BAD,     "bad" },
++    { 0x4b, LLDEVCPU_BAD,     "bad" },
++    { 0x4c, LLDEVCPU_BAD,     "bad" },
++    { 0x4d, LLDEVCPU_BAD,     "bad" },
++    { 0x4e, LLDEVCPU_BAD,     "bad" },
++    { 0x4f, LLDEVCPU_BAD,     "bad" },
++    { 0x50, LLDEVCPU_BAD,     "bad" },
++    { 0x51, LLDEVCPU_BAD,     "bad" },
++    { 0x52, LLDEVCPU_BAD,     "bad" },
++    { 0x53, LLDEVCPU_BAD,     "bad" },
++    { 0x54, LLDEVCPU_BAD,     "bad" },
++    { 0x55, LLDEVCPU_BAD,     "bad" },
++    { 0x56, LLDEVCPU_BAD,     "bad" },
++    { 0x57, LLDEVCPU_BAD,     "bad" },
++    { 0x58, LLDEVCPU_BAD,     "bad" },
++    { 0x59, LLDEVCPU_BAD,     "bad" },
++    { 0x5a, LLDEVCPU_BAD,     "bad" },
++    { 0x5b, LLDEVCPU_BAD,     "bad" },
++    { 0x5c, LLDEVCPU_BAD,     "bad" },
++    { 0x5d, LLDEVCPU_BAD,     "bad" },
++    { 0x5e, LLDEVCPU_BAD,     "bad" },
++    { 0x5f, LLDEVCPU_BAD,     "bad" },
++    { 0x60, LLDEVCPU_BAD,     "bad" },
++    { 0x61, LLDEVCPU_BAD,     "bad" },
++    { 0x62, LLDEVCPU_BAD,     "bad" },
++    { 0x63, LLDEVCPU_BAD,     "bad" },
++    { 0x64, LLDEVCPU_BAD,     "bad" },
++    { 0x65, LLDEVCPU_BAD,     "bad" },
++    { 0x66, LLDEVCPU_BAD,     "bad" },
++    { 0x67, LLDEVCPU_BAD,     "bad" },
++    { 0x68, LLDEVCPU_BAD,     "bad" },
++    { 0x69, LLDEVCPU_BAD,     "bad" },
++    { 0x6a, LLDEVCPU_BAD,     "bad" },
++    { 0x6b, LLDEVCPU_BAD,     "bad" },
++    { 0x6c, LLDEVCPU_BAD,     "bad" },
++    { 0x6d, LLDEVCPU_BAD,     "bad" },
++    { 0x6e, LLDEVCPU_BAD,     "bad" },
++    { 0x6f, LLDEVCPU_BAD,     "bad" },
++    { 0x70, LLDEVCPU_BAD,     "bad" },
++    { 0x71, LLDEVCPU_BAD,     "bad" },
++    { 0x72, LLDEVCPU_BAD,     "bad" },
++    { 0x73, LLDEVCPU_BAD,     "bad" },
++    { 0x74, LLDEVCPU_BAD,     "bad" },
++    { 0x75, LLDEVCPU_BAD,     "bad" },
++    { 0x76, LLDEVCPU_BAD,     "bad" },
++    { 0x77, LLDEVCPU_BAD,     "bad" },
++    { 0x78, LLDEVCPU_BAD,     "bad" },
++    { 0x79, LLDEVCPU_BAD,     "bad" },
++    { 0x7a, LLDEVCPU_BAD,     "bad" },
++    { 0x7b, LLDEVCPU_BAD,     "bad" },
++    { 0x7c, LLDEVCPU_BAD,     "bad" },
++    { 0x7d, LLDEVCPU_BAD,     "bad" },
++    { 0x7e, LLDEVCPU_BAD,     "bad" },
++    { 0x7f, LLDEVCPU_BAD,     "bad" }
++  };
++
++const lldevcpu_opc_info_t lldevcpu_form2_opc_info[4] =
++  {
++    { 0x00, LLDEVCPU_F2_A8V,  "inc" },
++    { 0x01, LLDEVCPU_F2_A8V,  "dec" },
++    { 0x02, LLDEVCPU_F2_A8V,  "gsr" },
++    { 0x03, LLDEVCPU_F2_A8V,  "ssr" }
++  };
++
++const lldevcpu_opc_info_t lldevcpu_form3_opc_info[16] =
++  {
++    { 0x00, LLDEVCPU_F3_PCREL,"beq" },
++    { 0x01, LLDEVCPU_F3_PCREL,"bne" },
++    { 0x02, LLDEVCPU_F3_PCREL,"blt" },
++    { 0x03, LLDEVCPU_F3_PCREL,"bgt" },
++    { 0x04, LLDEVCPU_F3_PCREL,"bltu" },
++    { 0x05, LLDEVCPU_F3_PCREL,"bgtu" },
++    { 0x06, LLDEVCPU_F3_PCREL,"bge" },
++    { 0x07, LLDEVCPU_F3_PCREL,"ble" },
++    { 0x08, LLDEVCPU_F3_PCREL,"bgeu" },
++    { 0x09, LLDEVCPU_F3_PCREL,"bleu" },
++    { 0x0a, LLDEVCPU_BAD,     "bad" },
++    { 0x0b, LLDEVCPU_BAD,     "bad" },
++    { 0x0c, LLDEVCPU_BAD,     "bad" },
++    { 0x0d, LLDEVCPU_BAD,     "bad" },
++    { 0x0e, LLDEVCPU_BAD,     "bad" },
++    { 0x0f, LLDEVCPU_BAD,     "bad" }  // Reserved as bad.
++  };
+diff -ruN binutils-2.34/opcodes/Makefile.am binutils-2.34-lldevcpu/opcodes/Makefile.am
+--- binutils-2.34/opcodes/Makefile.am	2020-01-18 15:55:49.000000000 +0200
++++ binutils-2.34-lldevcpu/opcodes/Makefile.am	2020-06-28 11:49:50.000000000 +0300
+@@ -199,6 +199,8 @@
+ 	mmix-opc.c \
+ 	moxie-dis.c \
+ 	moxie-opc.c \
++	lldevcpu-dis.c \
++	lldevcpu-opc.c \
+ 	msp430-decode.c \
+ 	msp430-dis.c \
+ 	mt-asm.c \
+diff -ruN binutils-2.34/opcodes/Makefile.in binutils-2.34-lldevcpu/opcodes/Makefile.in
+--- binutils-2.34/opcodes/Makefile.in	2020-02-01 13:49:42.000000000 +0200
++++ binutils-2.34-lldevcpu/opcodes/Makefile.in	2020-06-29 21:14:00.000000000 +0300
+@@ -589,6 +589,8 @@
+ 	mmix-opc.c \
+ 	moxie-dis.c \
+ 	moxie-opc.c \
++	lldevcpu-dis.c \
++	lldevcpu-opc.c \
+ 	msp430-decode.c \
+ 	msp430-dis.c \
+ 	mt-asm.c \
+@@ -1001,6 +1003,8 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmix-opc.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moxie-dis.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/moxie-opc.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lldevcpu-dis.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lldevcpu-opc.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msp430-decode.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msp430-dis.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mt-asm.Plo@am__quote@
+diff -ruN binutils-2.34/opcodes/po/POTFILES.in binutils-2.34-lldevcpu/opcodes/po/POTFILES.in
+--- binutils-2.34/opcodes/po/POTFILES.in	2020-02-01 13:49:48.000000000 +0200
++++ binutils-2.34-lldevcpu/opcodes/po/POTFILES.in	2020-06-28 12:16:30.000000000 +0300
+@@ -151,6 +151,8 @@
+ mmix-opc.c
+ moxie-dis.c
+ moxie-opc.c
++lldevcpu-dis.c
++lldevcpu-opc.c
+ msp430-decode.c
+ msp430-dis.c
+ mt-asm.c
